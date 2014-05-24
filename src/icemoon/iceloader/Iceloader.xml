@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+To change this template, choose Tools | Templates
+and open the template in the editor.
+-->
+<!DOCTYPE library PUBLIC "-//NetBeans//DTD Library Declaration 1.0//EN" "http://www.netbeans.org/dtds/library-declaration-1_0.dtd">
+<library version="1.0">
+    <name>Iceloader</name>
+    <type>j2se</type>
+    <localizing-bundle>icemoon.iceloader.Bundle</localizing-bundle>
+    <volume>
+        <type>classpath</type>
+        <resource>jar:nbinst://icemoon.iceloader/libs/Iceloader-classes.jar!/</resource>
+        <resource>jar:nbinst://icemoon.iceloader/libs/commons-vfs2-2.0.jar!/</resource>
+        <resource>jar:nbinst://icemoon.iceloader/libs/fat32-lib-0.6.5-SNAPSHOT.jar!/</resource>
+        <resource>jar:nbinst://icemoon.iceloader/libs/guava-11.0.2.jar!/</resource>
+        <resource>jar:nbinst://icemoon.iceloader/libs/jasypt-1.9.1.jar!/</resource>
+        <resource>jar:nbinst://icemoon.iceloader/libs/javassist-3.12.1.GA.jar!/</resource>
+        <resource>jar:nbinst://icemoon.iceloader/libs/reflections-0.9.8.jar!/</resource>
+    </volume>
+    <volume>
+        <type>src</type>
+        <resource>jar:nbinst://icemoon.iceloader/sources/Iceloader-src.zip!/</resource>
+    </volume>
+    <volume>
+        <type>javadoc</type>
+        <resource>jar:nbinst://icemoon.iceloader/docs/Iceloader-javadoc.zip!/</resource>
+    </volume>
+</library>
