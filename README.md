@@ -43,7 +43,18 @@ depend on the usage.
 
 ## Usage
 
-The first thing you will need to do is to configure the asset manager with your list
+After installation of the plugin, a new *Library* named **Iceloader** 
+will be available to add to your project. 
+
+1. Right click your project in the Projects view, select *Properties*.
+1. Click on *Libraries* in the Categories list.
+1. Select the *Compile* tab if it is not already selected.
+1. Click *Add Library*.
+1. Locate **Iceloader**, select it, then click *Add Library*.
+
+That's it, your project now includes the Iceloader library.
+
+The next thing you will need to do is to configure the asset manager with your list
 of custom locators (and loaders).
 
 ### Assets.cfg
