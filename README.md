@@ -1,4 +1,4 @@
-h1. Iceloader
+# Iceloader
 
 A JME3 plugin library that adds additional functionality to the
 asset loader system. The intention is to make remote asset loading efficient, and
@@ -25,7 +25,7 @@ Features include :-
   this adds the possiblity of loading resources from FTP, SMB, SCP, SFTP, Tar files, 
   Zip files, ram disks and a whole lot more, just by adding the appropriate libraries. 
 
-h2. Dependencies
+## Dependencies
 
 This plugin uses a few external libraries. The actual number needed at runtime will
 depend on the usage.
@@ -38,12 +38,12 @@ depend on the usage.
   LGPL.
 * Ant. For the encrypting and indexing of assets.
 
-h2. Usage
+## Usage
 
 The first thing you will need to do is to configure the asset manager with your list
 of custom locators (and loaders).
 
-h3. Assets.cfg
+### Assets.cfg
 
 As with the standard JME3 asset manager, the same simple text file is used to configure
 the list of locators and loaders.
@@ -97,7 +97,7 @@ This configuration will locate assets in the following manner :-
   JME (decrypted), all on the fly. If our local copy is the same, it will just be returned
   to JME decrypted.
 
-h3. Your Application
+### Your Application
 
 In order to take advantage of the indexing (i.e. if you require searching of assets at runtime
 for some reason), or if you want to just take advantage of the faster freshness check that
@@ -125,7 +125,7 @@ This is also a way to configure your application to use a different Assets.cfg.
 
 </pre>
 
-h3. Encryption
+### Encryption
 
 If you are going to be using encrypted assets, you will need a way of providing the
 decryption key to your application.
@@ -133,7 +133,7 @@ decryption key to your application.
 This is done through the EncryptionContext interface. The default implementation is 
 unsafe, and rubbish, useful for testing only. Use the default at your own risk.
 
-h4. Default EncryptionContext
+#### Default EncryptionContext
 
 This uses the AES/CFB8/NoPadding cipher, and a simple password and salt for the
 encryption key.
@@ -141,7 +141,7 @@ encryption key.
 The default password is "password123?" and the default salt is "12345678". To change these
 use the system properties _iceloader.password_ and _iceloader.salt_. 
 
-h4. A Custom EncryptionContext
+#### A Custom EncryptionContext
 
 You will need to create an implementation of EncryptionContext :-
 
@@ -171,7 +171,7 @@ EncryptionContext.set(new MyEncryptionContext());
 
 </pre>
 
-h3. Encrypting Your Assets and Creating Indexes
+### Encrypting Your Assets and Creating Indexes
 
 Indexes are used for two things. 
 
@@ -205,7 +205,7 @@ This will create the directory _enc_assets_, you can then upload this entire dir
 to any HTTP server and use EncryptedServerLocator in your locator list (see below for 
 how to configure the location of the server).
 
-h3. Single File Local Cache
+### Single File Local Cache
 
 A single dynamically growing local file may be used as a local asset cache. This is yet
 another barrier to easy access to assets, although not a very good one, as it is actually
@@ -215,7 +215,7 @@ included :)
 
 To activate this, set the system property _iceloader.assetCache_ to fat32:///path/to/some/file.
 
-h3. The Locators
+### The Locators
 
 Many of the locators can (and sometimes should) be configured. This is currently done
 using some system properties. I may look for a better way at some point.
@@ -223,68 +223,68 @@ using some system properties. I may look for a better way at some point.
 Depending on the locators you use, check the following. The defaults are unlikely to be
 fine for your case.
 
-h4. org.iceloader.ClasspathLocator 
+#### org.iceloader.ClasspathLocator 
 
 Much the same as the standard classpath locator, but with indexing support (provided by
 "reflections" library).
 
-h4. org.iceloader.ClasspathCachingLocator 
+#### org.iceloader.ClasspathCachingLocator 
 
 Much the same as the ClasspathLocator, but will also allow later remote asset locators
 check for the asset too. If there is one on a server, it would be used in preference.
 
-h4. org.iceloader.EncryptedClasspathLocator 
+#### org.iceloader.EncryptedClasspathLocator 
 
 Much the same as the ClasspathLocator, but will assume the classpath assets are encrypted,
 and decrypt them as they are returned to JME.
 
-h4. org.iceloader.AssetCacheLocator 
+#### org.iceloader.AssetCacheLocator 
 
 This will find in your local cache, that is is populated by other locators that may 
 download assets. If an asset is found here, it will be returned to JME (eventually, 
 after some an optional freshness check). 
 
-h4. org.iceloader.EncryptedAssetCacheLocator 
+#### org.iceloader.EncryptedAssetCacheLocator 
 
 This locator extends AssetCacheLocation and  will find encrypted stuff in your local cache, 
 that is is populated by other locators that may download assets. If an asset is found here, 
 it will be returned to JME (eventually, after some an optional freshness check), decrypted. 
 
-h5. Properties 
+##### Properties 
 
 * _iceloader.assetCache_. Root of where assets are actually locally cached. This may
   be a Commons VFS URI. For example, to store in /tmp/myassetseither file:///tmp/myassets 
   or /tmp/myassets would work.
 
-h4. org.iceloader.FileLocator 
+#### org.iceloader.FileLocator 
 
 Finds 'local' resources, but allows use of Commons VFS URI instead. So local resources
 could actually be remote. Will also cache resources retrieved this way if a cache
 locator is in use.
 
-h5. Properties 
+##### Properties 
 
 * _iceloader.fileLocation_. Root of where assets are actually locally loaded from. This
 is a Commons VFS URI, so, file:///home/user/Documents/Assets, or 
 ftp://anonymous@someserver.org/path/to/assets would be valid.
 
-h4. org.iceloader.ServerLocator 
+#### org.iceloader.ServerLocator 
 
 This locator will download unencrypted assets from a remote HTTP server. It also has all 
 the support needed for interacting with Iceloader's caching locators, and so is also  used
 to do fresness checks. 
 
-h5. Properties 
+##### Properties 
 
 * _iceloader.serverLocation_. Root of where assets are actually locally loaded from. 
 The default is http://localhost/. Make sure you end the URL with '/'.
 
-h4. org.iceloader.EncryptedServerLocator 
+#### org.iceloader.EncryptedServerLocator 
 
 This extension of ServerLocator expects the assets to be encrypted. It will decrypt
 them on-the-fly (also caching when appropriate).
 
-h5. Properties 
+##### Properties 
 
 * _iceloader.serverLocation_. Root of where assets are actually locally loaded from. 
 The default is http://localhost/. Make sure you end the URL with '/'.
