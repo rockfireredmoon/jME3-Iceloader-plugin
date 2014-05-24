@@ -51,6 +51,7 @@ will be available to add to your project.
 1. Select the *Compile* tab if it is not already selected.
 1. Click *Add Library*.
 1. Locate **Iceloader**, select it, then click *Add Library*.
+1. Clikc *Ok* to save and dismiss the project properties window.
 
 That's it, your project now includes the Iceloader library.
 
