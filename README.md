@@ -23,7 +23,10 @@ Features include :-
   (they don't have to use individual if-modified-since request).
 * Support for resources from Commons VFS. Possibly ultimately useless, but kind of cool, 
   this adds the possiblity of loading resources from FTP, SMB, SCP, SFTP, Tar files, 
-  Zip files, ram disks and a whole lot more, just by adding the appropriate libraries. 
+  Zip files, ram disks and a whole lot more, just by adding the appropriate libraries.
+
+_For encrypting and indexing assets as part of your build process, you will need the
+Iceloader-Ant library as well._
 
 ## Dependencies
 
@@ -51,9 +54,9 @@ the list of locators and loaders.
 Place the following in your META-INF, and name it Assets.cfg. 
 
 <pre>
-LOCATOR / org.iceloader.ClasspathLocator
-LOCATOR / org.iceloader.EncryptedAssetCacheLocator
-LOCATOR / org.iceloader.EncryptedServerLocator
+LOCATOR / icemoon.iceloader.locators.ClasspathLocator
+LOCATOR / icemoon.iceloader.locators.EncryptedAssetCacheLocator
+LOCATOR / icemoon.iceloader.locators.EncryptedServerLocator
 
 LOADER com.jme3.texture.plugins.AWTLoader : jpg, bmp, gif, jpeg, png
 LOADER com.jme3.audio.plugins.WAVLoader : wav
@@ -173,37 +176,7 @@ EncryptionContext.set(new MyEncryptionContext());
 
 ### Encrypting Your Assets and Creating Indexes
 
-Indexes are used for two things. 
-
-1. To speed up freshness checks when loading assets from a remote server for example using
-   EncryptedServerLocator or ServerLocator. The index also contains the last modified
-   time so only has to be downloaded once up-front, saving one request per asset.
-
-2. You may have a need to know what assets you have at runtime. I use this for some 
-   in game design tools (for creatures and world building). New assets may be uploaded
-   by users at any time, so the index is useful to me.
-
-The same tool that is used for indexing is also used to encrypt the assets for upload
-to the server that will be supplying them (or used to encrypt classpath resources if
-the assets you supply with your game are to be encrypted). 
-
-So, to create indexes and encrypt the assets, you use the provided Ant plugin. Add 
-something like the following to your _build-impl.xml_
-
-<pre>
-    <taskdef name="astproc"
-        classname="org.iceloader.ant.AssetProcessor"
-        classpath="lib/Iceloader.jar"/>
-    
-    <target name="compile-assets">
-        <astproc encrypt="true" index="true" srcdir="assets" destdir="enc_assets"/>
-    </target>
-
-</pre>
-
-This will create the directory _enc_assets_, you can then upload this entire direwctory
-to any HTTP server and use EncryptedServerLocator in your locator list (see below for 
-how to configure the location of the server).
+See the README.md of the Iceloader-Ant plugin here https://github.com/rockfireredmoon/jME3-Iceloader-Ant-plugin
 
 ### Single File Local Cache
 
@@ -223,28 +196,28 @@ using some system properties. I may look for a better way at some point.
 Depending on the locators you use, check the following. The defaults are unlikely to be
 fine for your case.
 
-#### org.iceloader.ClasspathLocator 
+#### icemoon.iceloader.locators.ClasspathLocator 
 
 Much the same as the standard classpath locator, but with indexing support (provided by
 "reflections" library).
 
-#### org.iceloader.ClasspathCachingLocator 
+#### icemoon.iceloader.locators.ClasspathCachingLocator 
 
 Much the same as the ClasspathLocator, but will also allow later remote asset locators
 check for the asset too. If there is one on a server, it would be used in preference.
 
-#### org.iceloader.EncryptedClasspathLocator 
+#### icemoon.iceloader.locators.EncryptedClasspathLocator 
 
 Much the same as the ClasspathLocator, but will assume the classpath assets are encrypted,
 and decrypt them as they are returned to JME.
 
-#### org.iceloader.AssetCacheLocator 
+#### icemoon.iceloader.locators.AssetCacheLocator 
 
 This will find in your local cache, that is is populated by other locators that may 
 download assets. If an asset is found here, it will be returned to JME (eventually, 
 after some an optional freshness check). 
 
-#### org.iceloader.EncryptedAssetCacheLocator 
+#### icemoon.iceloader.locators.EncryptedAssetCacheLocator 
 
 This locator extends AssetCacheLocation and  will find encrypted stuff in your local cache, 
 that is is populated by other locators that may download assets. If an asset is found here, 
@@ -256,7 +229,7 @@ it will be returned to JME (eventually, after some an optional freshness check),
   be a Commons VFS URI. For example, to store in /tmp/myassetseither file:///tmp/myassets 
   or /tmp/myassets would work.
 
-#### org.iceloader.FileLocator 
+#### icemoon.iceloader.locators.FileLocator 
 
 Finds 'local' resources, but allows use of Commons VFS URI instead. So local resources
 could actually be remote. Will also cache resources retrieved this way if a cache
@@ -268,7 +241,7 @@ locator is in use.
 is a Commons VFS URI, so, file:///home/user/Documents/Assets, or 
 ftp://anonymous@someserver.org/path/to/assets would be valid.
 
-#### org.iceloader.ServerLocator 
+#### icemoon.iceloader.locators.ServerLocator 
 
 This locator will download unencrypted assets from a remote HTTP server. It also has all 
 the support needed for interacting with Iceloader's caching locators, and so is also  used
@@ -279,7 +252,7 @@ to do fresness checks.
 * _iceloader.serverLocation_. Root of where assets are actually locally loaded from. 
 The default is http://localhost/. Make sure you end the URL with '/'.
 
-#### org.iceloader.EncryptedServerLocator 
+#### icemoon.iceloader.locators.EncryptedServerLocator 
 
 This extension of ServerLocator expects the assets to be encrypted. It will decrypt
 them on-the-fly (also caching when appropriate).
