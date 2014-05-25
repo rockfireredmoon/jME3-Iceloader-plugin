@@ -57,20 +57,20 @@ public class FileLocator extends AbstractVFSLocator {
     }
 
     public FileLocator() {
-        this(storeRoot);
+        this(defaultStoreRoot == null ? storeRoot : defaultStoreRoot);
     }
 
     public FileLocator(FileObject cacheRoot) {
         super(cacheRoot);
     }
 
-    @Override
-    public AssetInfo locate(AssetManager manager, final AssetKey key) {
-        final AssetInfo info = super.locate(manager, key);
-        if (info != null && AssetCacheLocator.isInUse()) {
-            final FileObject vfsRoot = AssetCacheLocator.getVFSRoot();
-            return new CachingAssetInfo(manager, key, info, vfsRoot);
-        }
-        return info;
-    }
+//    @Override
+//    public AssetInfo locate(AssetManager manager, final AssetKey key) {
+//        final AssetInfo info = super.locate(manager, key);
+//        if (info != null && AssetCacheLocator.isInUse()) {
+//            final FileObject vfsRoot = AssetCacheLocator.getVFSRoot();
+//            return new CachingAssetInfo(manager, key, info, vfsRoot);
+//        }
+//        return info;
+//    }
 }

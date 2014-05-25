@@ -47,9 +47,10 @@ import org.apache.commons.vfs2.FileType;
  */
 public abstract class AbstractVFSLocator implements AssetLocator {
 
+    protected static FileObject defaultStoreRoot;
+    
     private static final Logger LOG = Logger.getLogger(AbstractVFSLocator.class.getName());
     private FileObject storeRoot;
-    private static FileObject defaultStoreRoot;
     private String rootPath = "/";
     private static boolean alreadyLoaded;
 
