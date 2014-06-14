@@ -29,14 +29,18 @@
  */
 package icemoon.iceloader.locators;
 
-import com.jme3.asset.AssetInfo;
-import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoadException;
 import com.jme3.asset.AssetManager;
 import icemoon.iceloader.AbstractVFSLocator;
-import icemoon.iceloader.CachingAssetInfo;
+import static icemoon.iceloader.AbstractVFSLocator.setDefaultStoreRoot;
+import icemoon.iceloader.AssetIndex;
+import icemoon.iceloader.IndexItem;
+import icemoon.iceloader.IndexedAssetLocator;
 import java.io.File;
+import java.util.logging.Logger;
+import org.apache.commons.vfs2.AllFileSelector;
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.VFS;
 
 /**
@@ -44,33 +48,37 @@ import org.apache.commons.vfs2.VFS;
  * by the system property <strong>iceloader.fileLocation</strong> which itself defaults to
  * the local folder <strong>./assets</strong>.
  */
-public class FileLocator extends AbstractVFSLocator {
+public class FileLocator extends AbstractVFSLocator implements IndexedAssetLocator {
 
-    private static FileObject storeRoot;
+    private static final Logger LOG = Logger.getLogger(FileLocator.class.getName());
 
     static {
         try {
-            storeRoot = VFS.getManager().resolveFile(System.getProperty("iceloader.fileLocation", new File("assets/").getCanonicalPath()));
+            setDefaultStoreRoot(VFS.getManager().resolveFile(System.getProperty("iceloader.fileLocation", new File("assets/").getCanonicalPath())));
         } catch (Exception ex) {
             throw new AssetLoadException("Root path is invalid", ex);
         }
     }
+    private boolean loadedAssetIndex;
+    private AssetIndex assetIndex;
 
-    public FileLocator() {
-        this(defaultStoreRoot == null ? storeRoot : defaultStoreRoot);
+    @Override
+    public AssetIndex getIndex(AssetManager assetManager) {
+        if (!loadedAssetIndex) {
+            assetIndex = new AssetIndex(assetManager);
+            FileObject storeRoot = getStoreRoot();
+            try {
+                for (FileObject ob : storeRoot.findFiles(new AllFileSelector())) {
+                    if (ob.getType().equals(FileType.FILE)) {
+                        final String path = storeRoot.getName().getRelativeName(ob.getName());
+                        assetIndex.getBackingObject().add(new IndexItem(path));
+                    }
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to load asset index.", e);
+            }
+            loadedAssetIndex = true;
+        }
+        return assetIndex;
     }
-
-    public FileLocator(FileObject cacheRoot) {
-        super(cacheRoot);
-    }
-
-//    @Override
-//    public AssetInfo locate(AssetManager manager, final AssetKey key) {
-//        final AssetInfo info = super.locate(manager, key);
-//        if (info != null && AssetCacheLocator.isInUse()) {
-//            final FileObject vfsRoot = AssetCacheLocator.getVFSRoot();
-//            return new CachingAssetInfo(manager, key, info, vfsRoot);
-//        }
-//        return info;
-//    }
 }

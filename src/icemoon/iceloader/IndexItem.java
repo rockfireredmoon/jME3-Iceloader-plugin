@@ -29,7 +29,7 @@
  */
 package icemoon.iceloader;
 
-public class IndexItem {
+public class IndexItem implements Comparable<IndexItem>{
     private String name;
     private long lastModified;
     private long size;
@@ -75,6 +75,15 @@ public class IndexItem {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public int compareTo(IndexItem o) {
+        int i = name.compareTo(o.name);
+        if(i == 0) {
+            i = new Long(lastModified).compareTo(o.lastModified);
+        }
+        return i;
     }
     
 }

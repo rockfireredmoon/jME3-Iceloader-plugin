@@ -42,7 +42,7 @@ import java.util.logging.Logger;
 public abstract class AbstractConfiguration<B> {
 
     private final static Logger LOG = Logger.getLogger(AbstractConfiguration.class.getName());
-    protected String resourceName;
+    protected String assetPath;
     protected final B backingObject;
     protected final AssetManager assetManager;
 
@@ -61,14 +61,14 @@ public abstract class AbstractConfiguration<B> {
     /**
      * Load template default from the provided classloader.
      *
-     * @param resourceName name of terrain configuration resource
+     * @param assetPath name of configuration asset
      * @param classLoader class loader
      */
-    public AbstractConfiguration(String resourceName, AssetManager assetManager, B backingObject) {
-        this.resourceName = resourceName;
+    public AbstractConfiguration(String assetBaseName, AssetManager assetManager, B backingObject) {
+        this.assetPath = assetBaseName;
         this.assetManager = assetManager;
         this.backingObject = backingObject;
-        loadResource();
+        loadConfigurationAsset();
     }
 
     public B getBackingObject() {
@@ -78,8 +78,8 @@ public abstract class AbstractConfiguration<B> {
     protected abstract void load(InputStream in, B backingObject) throws IOException;
 
     public String getAssetFolder() {
-        int dx = resourceName.lastIndexOf('/');
-        return dx == -1 ? null : resourceName.substring(0, dx);
+        int dx = assetPath.lastIndexOf('/');
+        return dx == -1 ? null : assetPath.substring(0, dx);
     }
 
     public String relativize(String resource) {
@@ -99,25 +99,29 @@ public abstract class AbstractConfiguration<B> {
         }
         return getAssetFolder() + "/" + name;
     }
-
-    public String getResourceName() {
-        return resourceName;
+    
+    public String getAbsoluteAssetPath() {
+        return absolutize(getAssetPath());
     }
 
-    protected final void loadResource() {
+    public String getAssetPath() {
+        return assetPath;
+    }
+
+    protected final void loadConfigurationAsset() {
         if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine(String.format("Loading %s", resourceName));
+            LOG.fine(String.format("Loading %s", assetPath));
         }
 
-        AssetInfo info = assetManager.locateAsset(new AssetKey<Object>(resourceName));
+        AssetInfo info = assetManager.locateAsset(new AssetKey<Object>(assetPath));
         if (info == null) {
-            throw new AssetNotFoundException("Could not configuration resource " + resourceName);
+            throw new AssetNotFoundException("Could not find configuration resource " + assetPath);
         }
 
         try {
             InputStream in = info.openStream();
             if (in == null) {
-                throw new AssetNotFoundException("Could not configuration resource " + resourceName);
+                throw new AssetNotFoundException("Could not find configuration resource " + assetPath);
             }
             try {
                 load(in, backingObject);
@@ -125,7 +129,7 @@ public abstract class AbstractConfiguration<B> {
                 in.close();
             }
         } catch (IOException ioe) {
-            throw new AssetLoadException("Failed to load asset.", ioe);
+            throw new AssetLoadException("Failed to load configuration resource.", ioe);
         }
     }
 }

@@ -232,7 +232,16 @@ public class ServerLocator implements IndexedAssetLocator {
     public AssetIndex getIndex(AssetManager assetManager) {
         if (!loadedAssetIndex) {
             try {
-                assetIndex = new AssetIndex(AssetIndex.DEFAULT_RESOURCE_NAME, assetManager);
+                AssetInfo info = locate(assetManager,new AssetKey(AssetIndex.DEFAULT_RESOURCE_NAME));
+                if(info != null) {
+                assetIndex = new AssetIndex(assetManager);
+                    try {
+                        assetIndex.load(info.openStream());
+                    } catch (IOException ex) {
+                        throw new AssetLoadException("Failed to load index.", ex);
+                    }
+                }
+                
             } catch (AssetNotFoundException anfe) {
             } finally {
                 loadedAssetIndex = true;

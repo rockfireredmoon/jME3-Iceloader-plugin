@@ -48,8 +48,11 @@ import org.apache.commons.vfs2.FileType;
 public abstract class AbstractVFSLocator implements AssetLocator {
 
     protected static FileObject defaultStoreRoot;
-    
     private static final Logger LOG = Logger.getLogger(AbstractVFSLocator.class.getName());
+
+    static {
+        LOG.setLevel(Level.FINE);
+    }
     private FileObject storeRoot;
     private String rootPath = "/";
     private static boolean alreadyLoaded;
@@ -62,23 +65,25 @@ public abstract class AbstractVFSLocator implements AssetLocator {
         if (alreadyLoaded) {
             throw new IllegalStateException("Must set the default store root before the first instantiation.");
         }
+        LOG.fine(String.format("Setting defalt store root to %s", defaultStoreRoot));
         AbstractVFSLocator.defaultStoreRoot = defaultStoreRoot;
     }
 
     public AbstractVFSLocator() {
-        setStoreRoot(defaultStoreRoot);
     }
 
     public AbstractVFSLocator(FileObject root) {
         alreadyLoaded = true;
-        setStoreRoot(root == null ? defaultStoreRoot : root);
+        setStoreRoot(root);
     }
 
     public final void setStoreRoot(FileObject storeRoot) {
+        LOG.fine(String.format("Setting store root to %s", storeRoot));
         this.storeRoot = storeRoot;
         try {
-            if (storeRoot.getFileSystem().hasCapability(Capability.CREATE) && !storeRoot.exists()) {
-                storeRoot.createFolder();
+            final FileObject actualStoreRoot = getStoreRoot();
+            if (actualStoreRoot.getFileSystem().hasCapability(Capability.CREATE) && !actualStoreRoot.exists()) {
+                actualStoreRoot.createFolder();
             }
         } catch (FileSystemException fse) {
             throw new AssetLoadException("Failed to set store root.", fse);
@@ -86,7 +91,7 @@ public abstract class AbstractVFSLocator implements AssetLocator {
     }
 
     public FileObject getStoreRoot() {
-        return storeRoot;
+        return storeRoot == null ? defaultStoreRoot : storeRoot;
     }
 
     public void setRootPath(String rootPath) {
@@ -95,7 +100,7 @@ public abstract class AbstractVFSLocator implements AssetLocator {
         }
         this.rootPath = rootPath;
         if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine(String.format("Root path of store root %s is now %s", storeRoot.getName().getURI(), rootPath));
+            LOG.fine(String.format("Root path of store root %s is now %s", storeRoot == null ? defaultStoreRoot : storeRoot.getName().getURI(), rootPath));
         }
     }
 
@@ -139,6 +144,7 @@ public abstract class AbstractVFSLocator implements AssetLocator {
     }
 
     public AssetInfo locate(AssetManager manager, AssetKey key) {
+        FileObject actualStoreRoot = getStoreRoot();
         StringBuilder name = new StringBuilder(rootPath);
         final String keyName = key.getName();
         if (name.length() > 0 && !rootPath.endsWith("/") && !keyName.startsWith("/")) {
@@ -147,15 +153,18 @@ public abstract class AbstractVFSLocator implements AssetLocator {
         name.append(keyName);
         try {
             if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine(String.format("Trying to find %s in %s (%s)", key.getName(), storeRoot.getName().getURI(), name.toString()));
+                LOG.fine(String.format("Trying to find %s in %s (%s)", key.getName(), actualStoreRoot.getName().getURI(), name.toString()));
             }
-            FileObject file = storeRoot.resolveFile(name.toString());
+            FileObject file = actualStoreRoot.resolveFile(name.toString());
             if (file.exists() && file.getType().equals(FileType.FILE)) {
                 if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine(String.format("Found %s in %s", key.getName(), storeRoot.getName().getURI()));
+                    LOG.fine(String.format("Found %s in %s", key.getName(), actualStoreRoot.getName().getURI()));
                 }
                 return new AssetInfoFileObject(manager, key, file);
             } else {
+                if (LOG.isLoggable(Level.FINE)) {
+                    LOG.fine(String.format("Didn't find %s in %s", key.getName(), actualStoreRoot.getName().getURI()));
+                }
                 return null;
             }
         } catch (FileSystemException fnfne) {

@@ -50,6 +50,10 @@ public class AssetIndex extends AbstractConfiguration<List<IndexItem>> {
     public AssetIndex(String resourceName, AssetManager assetManager) {
         super(resourceName, assetManager, new ArrayList<IndexItem>());
     }
+    
+    public void load(InputStream in) throws IOException {
+        load(in, getBackingObject());
+    }
 
     @Override
     protected void load(InputStream in, List<IndexItem> backingObject) throws IOException {

@@ -35,17 +35,15 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.plugins.ogre.MeshLoader;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import icemoon.iceloader.AssetIndex;
-import icemoon.iceloader.IndexItem;
-import org.reflections.Reflections;
-import org.reflections.scanners.ResourcesScanner;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.logging.Level;
 
 /**
- * Locator that locates assets on the classpath, much like {@link ClasspathLocator},
- * but also provides an index of all classpath resources too.
+ * Locator that locates assets on the classpath, much like {@link ClasspathLocator}, but
+ * also provides an index of all classpath resources too.
  */
 public class ClasspathLocator extends com.jme3.asset.plugins.ClasspathLocator implements IndexedAssetLocator {
 
@@ -71,14 +69,29 @@ public class ClasspathLocator extends com.jme3.asset.plugins.ClasspathLocator im
     @Override
     public AssetIndex getIndex(AssetManager assetManager) {
         if (!loadedAssetIndex) {
-            MeshLoader ml;
             assetIndex = new AssetIndex(assetManager);
-            Reflections reflections = new Reflections(new ConfigurationBuilder()
-                    .addUrls(ClasspathHelper.forJavaClassPath())
-                    .setScanners(new ResourcesScanner()));
-            for (String s : reflections.getResources(Pattern.compile(".*"))) {
-                assetIndex.getBackingObject().add(new IndexItem(s));
+            try {
+                for (Enumeration<URL> en = getClass().getClassLoader().getResources(AssetIndex.DEFAULT_RESOURCE_NAME); en.hasMoreElements();) {
+                    URL u = en.nextElement();
+                    assetIndex.load(u.openStream());
+                }
+            } catch (IOException ioe) {
+                LOG.log(Level.WARNING, String.format("Could not index classpath assets.", ioe));
             }
+
+//            final Set<URL> jars = ClasspathHelper.forClassLoader(getClass().getClassLoader().);
+//            if (LOG.isLoggable(Level.FINE)) {
+//                LOG.fine(String.format("Indexing from jars %s", jars));
+//            }
+//            Reflections reflections = new Reflections(new ConfigurationBuilder()
+//                    .addUrls(jars)
+//                    .setScanners(new ResourcesScanner()));
+//            for (String s : reflections.getResources(Pattern.compile(".*"))) {
+//                if (LOG.isLoggable(Level.FINE)) {
+//                    LOG.fine(String.format("    %s", s));
+//                }
+//                assetIndex.getBackingObject().add(new IndexItem(s));
+//            }
             loadedAssetIndex = true;
         }
         return assetIndex;

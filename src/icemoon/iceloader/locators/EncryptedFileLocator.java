@@ -41,25 +41,18 @@ import org.apache.commons.vfs2.VFS;
 import icemoon.iceloader.DecryptedAssetInfo;
 import icemoon.iceloader.EncryptionContext;
 
-
 /**
  * Extension of {@link FileLocator} that expects the assets at the Commons VFS locations
  * are encrypted, and so will decrypt before returning to JME.
  */
 public class EncryptedFileLocator extends FileLocator {
 
-    private static FileObject cacheRoot;
-
     static {
         try {
-            cacheRoot = VFS.getManager().resolveFile(System.getProperty("iceloader.fileLocation", "file://enc_assets/"));
+            setDefaultStoreRoot(VFS.getManager().resolveFile(System.getProperty("iceloader.fileLocation", "file://enc_assets/")));
         } catch (FileSystemException ex) {
             throw new AssetLoadException("Root path is invalid", ex);
         }
-    }
-
-    public EncryptedFileLocator() {
-        super(cacheRoot);
     }
 
     @Override
