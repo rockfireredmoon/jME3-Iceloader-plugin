@@ -14,11 +14,9 @@ Features include :-
   not very safe system property to set the password.
 * Asset caching. Anything downloaded from remote locations (via standard HTTP servers) 
   can be cached locally. 
-* Special single-file cache that uses a Java implementation of FAT32.
 * Up-to-date checks. Anything cached locally will be checked for freshness. Checks can 
   happen once per runtime. Or when you choose.
-* Asset indexing. Local resources are indexed using "reflections" library. Server 
-  supplied resources can have an index.dat at the root (tools supplied to create this). 
+* Asset indexing. Resources can have an index.dat at the root (tools supplied to create this). 
   Indexing also carries last modified times, so up-to-date checks are greatly speeded up 
   (they don't have to use individual if-modified-since request).
 * Support for resources from Commons VFS. Possibly ultimately useless, but kind of cool, 
