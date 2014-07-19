@@ -11,12 +11,7 @@ and open the template in the editor.
     <volume>
         <type>classpath</type>
         <resource>jar:nbinst://icemoon.iceloader/libs/Iceloader-classes.jar!/</resource>
-        <resource>jar:nbinst://icemoon.iceloader/libs/commons-vfs2-2.0.jar!/</resource>
-        <resource>jar:nbinst://icemoon.iceloader/libs/fat32-lib-0.6.5-SNAPSHOT.jar!/</resource>
-        <resource>jar:nbinst://icemoon.iceloader/libs/guava-11.0.2.jar!/</resource>
-        <resource>jar:nbinst://icemoon.iceloader/libs/jasypt-1.9.1.jar!/</resource>
-        <resource>jar:nbinst://icemoon.iceloader/libs/javassist-3.12.1.GA.jar!/</resource>
-        <resource>jar:nbinst://icemoon.iceloader/libs/reflections-0.9.8.jar!/</resource>
+        <resource>jar:nbinst://org.apache.commons.vfs2/libs/commons-vfs2-2.0.jar!/</resource>
     </volume>
     <volume>
         <type>src</type>

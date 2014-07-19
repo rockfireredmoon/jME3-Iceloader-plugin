@@ -61,8 +61,9 @@ public abstract class AbstractConfiguration<B> {
     /**
      * Load template default from the provided classloader.
      *
-     * @param assetPath name of configuration asset
-     * @param classLoader class loader
+     * @param assetBaseName name of configuration asset
+     * @param assetManager the asset manager
+     * @param backingObject backing object
      */
     public AbstractConfiguration(String assetBaseName, AssetManager assetManager, B backingObject) {
         this.assetPath = assetBaseName;

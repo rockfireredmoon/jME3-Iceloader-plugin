@@ -40,7 +40,7 @@ import javax.crypto.spec.SecretKeySpec;
  * Encryption context supplies the key used to encrypt/decrypt assets and some other
  * configuration. To provide a custom key or other custom configuration, you can extend
  * this class and then use
- * {@link EncryptionContext#set(org.icescene.assets.EncryptionContext)} to set the new
+ * {@link EncryptionContext#set(EncryptionContext)} to set the new
  * context. Make sure you do this before the {@link AssetManager} is initialized.
  * <p>
  * An alernative context may also be specified using a runtime system property. Set
@@ -96,7 +96,7 @@ public abstract class EncryptionContext {
     /**
      * Implement to return the magic bytes used to detect encrypted assets.
      *
-     * @return
+     * @return magic
      */
     public abstract String getMagic();
 

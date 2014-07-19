@@ -160,7 +160,7 @@ public class ServerAssetManager extends DesktopAssetManager {
      * Get the first asset item given an assets name.
      * <code>null</code> will be returned if there is no such asset.
      *
-     * @parma name
+     * @param name
      * @return asset
      */
     public IndexItem getAsset(String name) {

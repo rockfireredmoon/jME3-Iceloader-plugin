@@ -29,19 +29,13 @@
  */
 package icemoon.iceloader.locators;
 
-import icemoon.iceloader.IndexedAssetLocator;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoadException;
 import com.jme3.asset.AssetManager;
-import com.jme3.asset.AssetNotFoundException;
 import java.io.FileNotFoundException;
-import java.io.FilterInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.text.DateFormat;
 import java.util.Date;
@@ -73,6 +67,7 @@ public class ServerLocator extends AbstractServerLocator {
         }
     }
 
+    @Override
     public AssetInfo locate(AssetManager manager, AssetKey key) {
         String name = key.getName();
         long ifModifiedSince = -1;

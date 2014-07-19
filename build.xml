@@ -11,11 +11,6 @@
         <echo>Creating releases folder (classes, source and Javadoc archives)</echo>  
         <zip basedir="build/javadoc" file="release/docs/Iceloader-javadoc.zip"/>        
         <zip basedir="src" file="release/sources/Iceloader-src.zip"/>
-        <copy todir="${release.dir}/libs" overwrite="true">
-            <fileset dir="../sharelib">
-                <patternset includes="*.jar"/>
-            </fileset>
-        </copy> 
         <copy tofile="${release.dir}/libs/Iceloader-classes.jar" file="${cluster}/${module.jar}"/>
         
         <mkdir dir="${cluster}"/>
