@@ -155,6 +155,14 @@ public class ServerAssetManager extends DesktopAssetManager {
             LOG.warning("No asset indexing done, no locators registered.");
         }
     }
+    
+    /**
+     * Re-index assets.
+     */
+    public void reindex() {
+        indexes.clear();
+        index();
+    }
 
     /**
      * Get the first asset item given an assets name.

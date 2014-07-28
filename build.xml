@@ -6,12 +6,12 @@
     <description>Builds, tests, and runs the project icemoon.iceloader.</description>
     <import file="nbproject/build-impl.xml"/>
 
-    <target name="release" depends="files-init,javadoc" if="has.release.dir">
+    <target name="release" depends="files-init,javadoc" >
         
         <echo>Creating releases folder (classes, source and Javadoc archives)</echo>  
         <zip basedir="build/javadoc" file="release/docs/Iceloader-javadoc.zip"/>        
         <zip basedir="src" file="release/sources/Iceloader-src.zip"/>
-        <mkdir dir="${release.dir}"/>
+        <mkdir dir="${release.dir}/libs"/>
         <copy tofile="${release.dir}/libs/Iceloader-classes.jar" file="${cluster}/${module.jar}"/>
         
         <mkdir dir="${cluster}"/>
