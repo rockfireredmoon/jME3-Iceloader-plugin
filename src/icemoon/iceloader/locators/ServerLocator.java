@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emeral Icemoon All rights reserved.
+ * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -67,7 +67,6 @@ public class ServerLocator extends AbstractServerLocator {
         }
     }
 
-    @Override
     public AssetInfo locate(AssetManager manager, AssetKey key) {
         String name = key.getName();
         long ifModifiedSince = -1;

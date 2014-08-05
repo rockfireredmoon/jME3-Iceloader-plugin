@@ -1,0 +1,39 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<name>Iceloader</name>
+	<description>Asset loader extensions for JME3.</description>
+	<artifactId>jME3-Iceloader-plugin</artifactId>
+	<parent>
+		<groupId>jME3-ext</groupId>
+		<artifactId>jME3-Iceloader</artifactId>
+		<version>0.0.1-SNAPSHOT</version>
+		<relativePath>../jME3-Iceloader</relativePath>
+	</parent>
+	<properties>
+		<jmonkey.version>3.0.0.20140325-SNAPSHOT</jmonkey.version>
+	</properties>
+	<build>
+		<sourceDirectory>src</sourceDirectory>
+		<testSourceDirectory>test</testSourceDirectory>
+		<outputDirectory>target/classes</outputDirectory>
+		<testOutputDirectory>target/test-classes</testOutputDirectory>
+	</build>
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-vfs2</artifactId>
+			<version>2.0</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>maven-scm-provider-svnexe</artifactId>
+					<groupId>org.apache.maven.scm</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>maven-scm-api</artifactId>
+					<groupId>org.apache.maven.scm</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+	</dependencies>
+</project>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emeral Icemoon All rights reserved.
+ * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -165,7 +165,6 @@ public abstract class AbstractServerLocator implements IndexedAssetLocator {
         return AssetCacheLocator.getCachedAssetInfo(key);
     }
 
-    @Override
     public AssetIndex getIndex(AssetManager assetManager) {
         if (!loadedAssetIndex) {
             try {

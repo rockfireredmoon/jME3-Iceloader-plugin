@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emeral Icemoon All rights reserved.
+ * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,17 +29,18 @@
  */
 package icemoon.iceloader.locators;
 
-import icemoon.iceloader.IndexedAssetLocator;
-import com.jme3.asset.AssetInfo;
-import com.jme3.asset.AssetKey;
-import com.jme3.asset.AssetManager;
-import com.jme3.scene.plugins.ogre.MeshLoader;
-import java.util.logging.Logger;
 import icemoon.iceloader.AssetIndex;
+import icemoon.iceloader.IndexedAssetLocator;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.Enumeration;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import com.jme3.asset.AssetInfo;
+import com.jme3.asset.AssetKey;
+import com.jme3.asset.AssetManager;
 
 /**
  * Locator that locates assets on the classpath, much like {@link ClasspathLocator}, but
@@ -66,7 +67,6 @@ public class ClasspathLocator extends com.jme3.asset.plugins.ClasspathLocator im
         return super.locate(manager, key);
     }
 
-    @Override
     public AssetIndex getIndex(AssetManager assetManager) {
         if (!loadedAssetIndex) {
             assetIndex = new AssetIndex(assetManager);

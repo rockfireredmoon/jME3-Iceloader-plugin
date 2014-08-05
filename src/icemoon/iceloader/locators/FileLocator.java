@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emeral Icemoon All rights reserved.
+ * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -62,7 +62,6 @@ public class FileLocator extends AbstractVFSLocator implements IndexedAssetLocat
     private boolean loadedAssetIndex;
     private AssetIndex assetIndex;
 
-    @Override
     public AssetIndex getIndex(AssetManager assetManager) {
         if (!loadedAssetIndex) {
             assetIndex = new AssetIndex(assetManager);
