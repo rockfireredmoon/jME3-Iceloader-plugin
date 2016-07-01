@@ -29,232 +29,281 @@
  */
 package icemoon.iceloader;
 
-import com.jme3.asset.AssetKey;
-import com.jme3.asset.AssetLocator;
-import com.jme3.asset.DesktopAssetManager;
 import icemoon.iceloader.locators.ServerLocator;
+
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+
 import javax.crypto.spec.SecretKeySpec;
 
+import com.jme3.asset.AssetKey;
+import com.jme3.asset.AssetLocator;
+import com.jme3.asset.DesktopAssetManager;
+
 /**
- * Extension of {@link DesktopAssetManager}, mainly to allow indexes of assets available.
- * Also provided are events for progress of assets that are being downloading from a
+ * Extension of {@link DesktopAssetManager}, mainly to allow indexes of assets
+ * available.
+ * Also provided are events for progress of assets that are being downloading
+ * from a
  * remote location.
  */
 public class ServerAssetManager extends DesktopAssetManager {
 
-    /**
-     * Interface to be implemented to be notified of asset downloads from the
-     * {@link ServerLocator} and it's extensions.
-     */
-    public interface DownloadingListener {
+	/**
+	 * Interface to be implemented to be notified of asset downloads from the
+	 * {@link ServerLocator} and it's extensions.
+	 */
+	public interface DownloadingListener {
 
-        /**
-         * A download has started.
-         * 
-         * @param key asset key
-         * @param size size of download
-         */
-        void downloadStarting(AssetKey key, long size);
+		/**
+		 * A download has started.
+		 * 
+		 * @param key
+		 *            asset key
+		 * @param size
+		 *            size of download
+		 */
+		void downloadStarting(AssetKey key, long size);
 
-        /**
-         * A download has progressed.
-         * 
-         * @param key asset key
-         * @param progress the number of bytes of the asset now read
-         */
-        void downloadProgress(AssetKey key, long progress);
+		/**
+		 * A download has progressed.
+		 * 
+		 * @param key
+		 *            asset key
+		 * @param progress
+		 *            the number of bytes of the asset now read
+		 */
+		void downloadProgress(AssetKey key, long progress);
 
-        /**
-         * A download has completed.
-         * 
-         * @param key asset key
-         */
-        void downloadComplete(AssetKey key);
-    }
+		/**
+		 * A download has completed.
+		 * 
+		 * @param key
+		 *            asset key
+		 */
+		void downloadComplete(AssetKey key);
+	}
 
-    private static final Logger LOG = Logger.getLogger(ServerAssetManager.class.getName());
-    private SecretKeySpec secret;
-    private List<AssetIndex> indexes = new ArrayList<AssetIndex>();
-    private List<Class<? extends IndexedAssetLocator>> locators;
-    private List<DownloadingListener> downloadingListeners = new ArrayList<DownloadingListener>();
+	private static final Logger LOG = Logger.getLogger(ServerAssetManager.class.getName());
+	private SecretKeySpec secret;
+	private List<AssetIndex> indexes = new ArrayList<AssetIndex>();
+	private List<Class<? extends IndexedAssetLocator>> locators;
+	private List<DownloadingListener> downloadingListeners = new ArrayList<DownloadingListener>();
+	private Map<String, Set<String>> assetPatternsCache = new HashMap<String, Set<String>>();
 
-    public ServerAssetManager() {
-        init();
-    }
+	public ServerAssetManager() {
+		init();
+	}
 
-    public ServerAssetManager(boolean loadDefaults) {
-        super(loadDefaults);
-        init();
-    }
+	public ServerAssetManager(boolean loadDefaults) {
+		super(loadDefaults);
+		init();
+	}
 
-    public ServerAssetManager(URL configFile) {
-        super(configFile);
-        init();
-    }
-    
-    /**
-     * Add a listener to those notified when a remote asset download starts.
-     *
-     * @param downloadingListener listener
-     */
-    public void addDownloadingListener(DownloadingListener downloadingListener) {
-        downloadingListeners.add(downloadingListener);
-    }
+	public ServerAssetManager(URL configFile) {
+		super(configFile);
+		init();
+	}
 
-    /**
-     * Remove a listener from those notified when a remote asset download starts.
-     *
-     * @param downloadingListener listener
-     */
-    public void removeDownloadingListener(DownloadingListener downloadingListener) {
-        downloadingListeners.remove(downloadingListener);
-    }
+	/**
+	 * Add a listener to those notified when a remote asset download starts.
+	 *
+	 * @param downloadingListener
+	 *            listener
+	 */
+	public void addDownloadingListener(DownloadingListener downloadingListener) {
+		downloadingListeners.add(downloadingListener);
+	}
 
-    @Override
-    public void registerLocator(String rootPath, Class<? extends AssetLocator> locatorClass) {
-        super.registerLocator(rootPath, locatorClass);
+	/**
+	 * Remove a listener from those notified when a remote asset download
+	 * starts.
+	 *
+	 * @param downloadingListener
+	 *            listener
+	 */
+	public void removeDownloadingListener(DownloadingListener downloadingListener) {
+		downloadingListeners.remove(downloadingListener);
+	}
 
-        // Capture the loaders so we can get asset indexes from those that support it
-        if (IndexedAssetLocator.class.isAssignableFrom(locatorClass)) {
-            final Class<? extends IndexedAssetLocator> clazz = (Class<? extends IndexedAssetLocator>) locatorClass;
-            if (locators == null) {
-                locators = new ArrayList<Class<? extends IndexedAssetLocator>>();
-            }
-            locators.add(clazz);
-        }
-    }
+	@Override
+	public void registerLocator(String rootPath, Class<? extends AssetLocator> locatorClass) {
+		super.registerLocator(rootPath, locatorClass);
 
-    /**
-     * Build the indexes. Should be called only once after the asset manager and all the
-     * locators have been configured.
-     */
-    public void index() {
-        if (locators != null) {
-            for (Class<? extends IndexedAssetLocator> clazz : locators) {
-                try {
-                    IndexedAssetLocator loc = (IndexedAssetLocator) clazz.newInstance();
-                    AssetIndex index = loc.getIndex(this);
-                    if (index == null) {
-                        LOG.info(String.format("No asset index for %s", clazz));
-                    } else {
-                        indexes.add(index);
-                        LOG.info(String.format("Asset index for %s contains %d entries", clazz, index.getBackingObject().size()));
-                    }
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        } else {
-            LOG.warning("No asset indexing done, no locators registered.");
-        }
-    }
-    
-    /**
-     * Re-index assets.
-     */
-    public void reindex() {
-        indexes.clear();
-        index();
-    }
+		// Capture the loaders so we can get asset indexes from those that
+		// support it
+		if (IndexedAssetLocator.class.isAssignableFrom(locatorClass)) {
+			final Class<? extends IndexedAssetLocator> clazz = (Class<? extends IndexedAssetLocator>) locatorClass;
+			if (locators == null) {
+				locators = new ArrayList<Class<? extends IndexedAssetLocator>>();
+			}
+			locators.add(clazz);
+		}
+	}
 
-    /**
-     * Get the first asset item given an assets name.
-     * <code>null</code> will be returned if there is no such asset.
-     *
-     * @param name
-     * @return asset
-     */
-    public IndexItem getAsset(String name) {
-        for (AssetIndex index : indexes) {
-            IndexItem i = index.getAsset(name);
-            if (i != null) {
-                return i;
-            }
-        }
-        return null;
-    }
+	/**
+	 * Build the indexes. Should be called only once after the asset manager and
+	 * all the
+	 * locators have been configured.
+	 */
+	public void index() {
+		if (locators != null) {
+			for (Class<? extends IndexedAssetLocator> clazz : locators) {
+				try {
+					IndexedAssetLocator loc = (IndexedAssetLocator) clazz.newInstance();
+					AssetIndex index = loc.getIndex(this);
+					if (index == null) {
+						LOG.info(String.format("No asset index for %s", clazz));
+					} else {
+						indexes.add(index);
+						LOG.info(String.format("Asset index for %s contains %d entries", clazz, index.getBackingObject().size()));
+					}
+				} catch (Exception ex) {
+					throw new RuntimeException(ex);
+				}
+			}
+		} else {
+			LOG.warning("No asset indexing done, no locators registered.");
+		}
+	}
 
-    /**
-     * Get all of the indexed assets given a regular expression.
-     *
-     * @param pattern pattern
-     * @return list of assets matching the pattern
-     */
-    public Set<IndexItem> getAssetsMatching(String pattern) {
-        Set<IndexItem> assets = new TreeSet<IndexItem>();
-        Pattern p = Pattern.compile(pattern);
-        for (AssetIndex index : indexes) {
-            assets.addAll(index.getAssetsMatching(p));
-        }
-        return assets;
-    }
+	/**
+	 * Get all indexes
+	 */
+	public List<AssetIndex> getIndexes() {
+		return indexes;
+	}
 
-    /**
-     * Get all of the indexed asset names given a regular expression.
-     *
-     * @param pattern pattern
-     * @return list of asset names matching the pattern
-     */
-    public Set<String> getAssetNamesMatching(String pattern) {
-        Set<String> assets = new TreeSet<String>();
-        Pattern p = Pattern.compile(pattern);
-        for (AssetIndex index : indexes) {
-            assets.addAll(index.getAssetNamesMatching(p));
-        }
-        return assets;
-    }
+	/**
+	 * Re-index assets.
+	 */
+	public void reindex() {
+		indexes.clear();
+		assetPatternsCache.clear();
+		index();
+	}
 
-    /**
-     * Get if any asset index contains the given name.
-     *
-     * @param name name
-     * @return contained in index
-     */
-    public boolean hasAsset(String name) {
-        for (AssetIndex index : indexes) {
-            if (index.hasAsset(name)) {
-                return true;
-            }
-        }
-        return false;
-    }
+	/**
+	 * Get the first asset item given an assets name. <code>null</code> will be
+	 * returned if there is no such asset.
+	 *
+	 * @param name
+	 * @return asset
+	 */
+	public IndexItem getAsset(String name) {
+		for (AssetIndex index : indexes) {
+			IndexItem i = index.getAsset(name);
+			if (i != null) {
+				return i;
+			}
+		}
+		return null;
+	}
 
-    @Override
-    public <T> T loadAsset(AssetKey<T> key) {
-        T t = super.loadAsset(key);
-        return t;
-    }
+	/**
+	 * Get all of the indexed assets given a regular expression.
+	 *
+	 * @param pattern
+	 *            pattern
+	 * @return list of assets matching the pattern
+	 */
+	public Set<IndexItem> getAssetsMatching(String pattern) {
+		Set<IndexItem> assets = new TreeSet<IndexItem>();
+		Pattern p = Pattern.compile(pattern);
+		for (AssetIndex index : indexes) {
+			assets.addAll(index.getAssetsMatching(p));
+		}
+		return assets;
+	}
 
-    public void fireDownloadStarted(AssetKey key, long length) {
-        for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
-            downloadingListeners.get(i).downloadStarting(key, length);
-        }
-    }
+	/**
+	 * Get all of the indexed asset names given a regular expression.
+	 *
+	 * @param pattern
+	 *            pattern
+	 * @return list of asset names matching the pattern
+	 */
+	public Set<String> getAssetNamesMatching(String pattern) {
+		return getAssetNamesMatching(pattern, 0);
+	}
 
-    public void fireDownloadProgress(AssetKey key, long progress) {
-        for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
-            downloadingListeners.get(i).downloadProgress(key, progress);
-        }
-    }
+	/**
+	 * Get all of the indexed asset names given a regular expression.
+	 *
+	 * @param pattern
+	 *            pattern
+	 * @param regexp
+	 *            flags (see {@link Pattern}).
+	 * @return list of asset names matching the pattern
+	 */
+	public Set<String> getAssetNamesMatching(String pattern, int flags) {
+		String k = pattern + "_" + flags;
+		long now = System.currentTimeMillis();
+		Set<String> assets = assetPatternsCache.get(k);
+		if (assets == null) {
+			assets = new TreeSet<String>();
+			Pattern p = Pattern.compile(pattern, flags);
+			for (AssetIndex index : indexes) {
+				assets.addAll(index.getAssetNamesMatching(p));
+			}
+			assetPatternsCache.put(k, assets);
+		}
+		LOG.info(String.format("Took %d ms to find %s (resulted in %d hits)", System.currentTimeMillis() - now, pattern, assets.size()));
+		return assets;
+	}
 
-    public void fireDownloadComplete(AssetKey key) {
-        for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
-            downloadingListeners.get(i).downloadComplete(key);
-        }
-    }
+	/**
+	 * Get if any asset index contains the given name.
+	 *
+	 * @param name
+	 *            name
+	 * @return contained in index
+	 */
+	public boolean hasAsset(String name) {
+		for (AssetIndex index : indexes) {
+			if (index.hasAsset(name)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
-    private void init() {
-        try {
-            secret = EncryptionContext.get().createKey();
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to initialize asset manager.", ex);
-        }
-    }
+	@Override
+	public <T> T loadAsset(AssetKey<T> key) {
+		T t = super.loadAsset(key);
+		return t;
+	}
+
+	public void fireDownloadStarted(AssetKey key, long length) {
+		for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
+			downloadingListeners.get(i).downloadStarting(key, length);
+		}
+	}
+
+	public void fireDownloadProgress(AssetKey key, long progress) {
+		for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
+			downloadingListeners.get(i).downloadProgress(key, progress);
+		}
+	}
+
+	public void fireDownloadComplete(AssetKey key) {
+		for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
+			downloadingListeners.get(i).downloadComplete(key);
+		}
+	}
+
+	private void init() {
+		try {
+			secret = EncryptionContext.get().createKey();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to initialize asset manager.", ex);
+		}
+	}
 }

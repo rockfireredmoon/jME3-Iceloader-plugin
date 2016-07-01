@@ -51,263 +51,268 @@ import icemoon.iceloader.ServerAssetManager;
  */
 public abstract class AbstractServerLocator implements IndexedAssetLocator {
 
-    private static final Logger LOG = Logger.getLogger(AbstractServerLocator.class.getName());
-    protected URL root;
-    protected static URL serverRoot;
+	private static final Logger LOG = Logger.getLogger(AbstractServerLocator.class.getName());
+	protected URL root;
+	protected static URL serverRoot;
 
-    public static URL getServerRoot() {
-        return serverRoot;
-    }
+	public static URL getServerRoot() {
+		return serverRoot;
+	}
 
-    public static void setServerRoot(URL serverRoot) {
-        AbstractServerLocator.serverRoot = serverRoot;
-    }
-    private AssetIndex assetIndex;
-    private boolean fireEvents = true;
-    private boolean useCaching = true;
-    private boolean loadedAssetIndex;
-    private static int connectTimeout = 30000;
-    private static int readTimeout = 30000;
+	public static void setServerRoot(URL serverRoot) {
+		AbstractServerLocator.serverRoot = serverRoot;
+	}
 
-    public AbstractServerLocator() {
-        root = serverRoot;
-    }
+	private AssetIndex assetIndex;
+	private boolean fireEvents = true;
+	private boolean useCaching = true;
+	private boolean loadedAssetIndex;
+	private static int connectTimeout = 30000;
+	private static int readTimeout = 30000;
 
-    public static int getConnectTimeout() {
-        return connectTimeout;
-    }
+	public AbstractServerLocator() {
+		root = serverRoot;
+	}
 
-    public static void setConnectTimeout(int connectTimeout) {
-        AbstractServerLocator.connectTimeout = connectTimeout;
-    }
+	public static int getConnectTimeout() {
+		return connectTimeout;
+	}
 
-    public static int getReadTimeout() {
-        return readTimeout;
-    }
+	public static void setConnectTimeout(int connectTimeout) {
+		AbstractServerLocator.connectTimeout = connectTimeout;
+	}
 
-    public static void setReadTimeout(int readTimeout) {
-        AbstractServerLocator.readTimeout = readTimeout;
-    }
+	public static int getReadTimeout() {
+		return readTimeout;
+	}
 
-    public boolean isFireEvents() {
-        return fireEvents;
-    }
+	public static void setReadTimeout(int readTimeout) {
+		AbstractServerLocator.readTimeout = readTimeout;
+	}
 
-    public boolean isUseCaching() {
-        return useCaching;
-    }
+	public boolean isFireEvents() {
+		return fireEvents;
+	}
 
-    public void setUseCaching(boolean useCaching) {
-        this.useCaching = useCaching;
-    }
+	public boolean isUseCaching() {
+		return useCaching;
+	}
 
-    public void setFireEvents(boolean fireEvents) {
-        this.fireEvents = fireEvents;
-    }
+	public void setUseCaching(boolean useCaching) {
+		this.useCaching = useCaching;
+	}
 
-    public void setRootPath(String rootPath) {
-        // TODO need to support this properly
-//        try {
-//            this.root = new URL(rootPath);
-//        } catch (MalformedURLException ex) {
-//            throw new IllegalArgumentException("Invalid root url.", ex);
-//        }
-    }
+	public void setFireEvents(boolean fireEvents) {
+		this.fireEvents = fireEvents;
+	}
 
-    public AssetInfo create(AssetManager assetManager, AssetKey key, URL url, long ifModifiedSince) throws IOException {
-        // Check if URL can be reached. This will throw
-        // IOException which calling code will handle.
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine(String.format("Attempting to download %s (from root %s) from the HTTP server", url, root));
-        }
-        URLConnection conn = url.openConnection();
-        conn.setConnectTimeout(connectTimeout);
-        conn.setReadTimeout(readTimeout);
-        conn.setUseCaches(false);
-        if (ifModifiedSince != -1 && useCaching) {
-            conn.setIfModifiedSince(ifModifiedSince);
-        }
-        if (conn instanceof HttpURLConnection) {
-            final HttpURLConnection httpConn = (HttpURLConnection) conn;
-            int resp = httpConn.getResponseCode();
-            if (resp == 304) {
-                if (useCaching) {
-                    return getCachedAssetInfo(assetManager, key);
-                } else {
-                    throw new AssetLoadException("Caching is not enabled, unexpected 304 response.");
-                }
-            }
-        }
-        long lastModified = conn.getLastModified();
-        long size = conn.getContentLengthLong();
+	public void setRootPath(String rootPath) {
+		// TODO need to support this properly
+		// try {
+		// this.root = new URL(rootPath);
+		// } catch (MalformedURLException ex) {
+		// throw new IllegalArgumentException("Invalid root url.", ex);
+		// }
+	}
 
-        InputStream in = assetManager instanceof ServerAssetManager
-                ? getStream((ServerAssetManager) assetManager, key, conn, size)
-                : conn.getInputStream();
+	public AssetInfo create(AssetManager assetManager, AssetKey key, URL url, long ifModifiedSince) throws IOException {
+		// Check if URL can be reached. This will throw
+		// IOException which calling code will handle.
+		if (LOG.isLoggable(Level.FINE)) {
+			LOG.fine(String.format("Attempting to download %s (from root %s) from the HTTP server", url, root));
+		}
+		URLConnection conn = url.openConnection();
+		conn.setConnectTimeout(connectTimeout);
+		conn.setReadTimeout(readTimeout);
+		conn.setUseCaches(false);
+		if (ifModifiedSince != -1 && useCaching) {
+			conn.setIfModifiedSince(ifModifiedSince);
+		}
+		if (conn instanceof HttpURLConnection) {
+			final HttpURLConnection httpConn = (HttpURLConnection) conn;
+			int resp = httpConn.getResponseCode();
+			if (resp == 304) {
+				if (useCaching) {
+					return getCachedAssetInfo(assetManager, key);
+				} else {
+					throw new AssetLoadException("Caching is not enabled, unexpected 304 response.");
+				}
+			}
+		}
+		long lastModified = conn.getLastModified();
+		long size = conn.getContentLengthLong();
 
-        // For some reason url cannot be reached?
-        if (in == null) {
-            // 404 etc
-            return null;
-        } else {
-            final UrlAssetInfo inf = new UrlAssetInfo(assetManager, key, url, in, ifModifiedSince, this);
-            inf.lastModified = lastModified == 0 ? -1 : lastModified;
-            inf.size = size;
-            return inf;
-        }
-    }
+		InputStream in = assetManager instanceof ServerAssetManager ? getStream((ServerAssetManager) assetManager, key, conn, size)
+				: conn.getInputStream();
 
-    protected AssetInfo getCachedAssetInfo(AssetManager manager, AssetKey key) {
-        // Content has not changed, return original cached content
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine(String.format("Content %s has not changed, using cached version", key.getName()));
-        }
-        return AssetCacheLocator.getCachedAssetInfo(key);
-    }
+		// For some reason url cannot be reached?
+		if (in == null) {
+			// 404 etc
+			return null;
+		} else {
+			final UrlAssetInfo inf = new UrlAssetInfo(assetManager, key, url, in, ifModifiedSince, this);
+			inf.lastModified = lastModified == 0 ? -1 : lastModified;
+			inf.size = size;
+			return inf;
+		}
+	}
 
-    public AssetIndex getIndex(AssetManager assetManager) {
-        if (!loadedAssetIndex) {
-            try {
-                AssetInfo info = locate(assetManager, new AssetKey(AssetIndex.DEFAULT_RESOURCE_NAME));
-                if (info != null) {
-                    assetIndex = new AssetIndex(assetManager);
-                    try {
-                        assetIndex.load(info.openStream());
-                    } catch (IOException ex) {
-                        throw new AssetLoadException("Failed to load index.", ex);
-                    }
-                }
+	protected AssetInfo getCachedAssetInfo(AssetManager manager, AssetKey key) {
+		// Content has not changed, return original cached content
+		if (LOG.isLoggable(Level.FINE)) {
+			LOG.fine(String.format("Content %s has not changed, using cached version", key.getName()));
+		}
+		return AssetCacheLocator.getCachedAssetInfo(key);
+	}
 
-            } catch (AssetNotFoundException anfe) {
-            } finally {
-                loadedAssetIndex = true;
-            }
-        }
-        return assetIndex;
-    }
+	public AssetIndex getIndex(AssetManager assetManager) {
+		if (!loadedAssetIndex) {
+			try {
+				AssetInfo info = locate(assetManager, new AssetKey<AssetIndex>(AssetIndex.DEFAULT_RESOURCE_NAME));
+				if (info != null) {
+					assetIndex = new AssetIndex(assetManager);
+					try {
+						assetIndex.load(info.openStream());
+					} catch (IOException ex) {
+						throw new AssetLoadException("Failed to load index.", ex);
+					}
+					assetIndex.configure(info instanceof ExtendedAssetInfo ? ((ExtendedAssetInfo) info).getLastModified() : 0,
+							getClass().getSimpleName().toLowerCase() + "://" + info.getKey().getName());
+				}
 
-    private InputStream getStream(final ServerAssetManager assetManager, final AssetKey key, URLConnection conn, long fileLength) throws IOException {
-        if (fireEvents) {
-            assetManager.fireDownloadStarted(key, fileLength);
-            InputStream in = conn.getInputStream();
-            return new FilterInputStream(in) {
-                private long total;
+			} catch (AssetNotFoundException anfe) {
+			} finally {
+				loadedAssetIndex = true;
+			}
+		}
+		return assetIndex;
+	}
 
-                @Override
-                public int read() throws IOException {
-                    int r = super.read();
-                    if (r != -1) {
-                        total++;
-                        assetManager.fireDownloadProgress(key, total);
-                    }
-                    return r;
-                }
+	private InputStream getStream(final ServerAssetManager assetManager, final AssetKey key, URLConnection conn, long fileLength)
+			throws IOException {
+		if (fireEvents) {
+			assetManager.fireDownloadStarted(key, fileLength);
+			InputStream in = conn.getInputStream();
+			return new FilterInputStream(in) {
+				private long total;
 
-                @Override
-                public int read(byte[] b) throws IOException {
-                    int r = super.read(b);
-                    if (r != -1) {
-                        total += r;
-                        assetManager.fireDownloadProgress(key, total);
-                    }
-                    return r;
-                }
+				@Override
+				public int read() throws IOException {
+					int r = super.read();
+					if (r != -1) {
+						total++;
+						assetManager.fireDownloadProgress(key, total);
+					}
+					return r;
+				}
 
-                @Override
-                public int read(byte[] b, int off, int len) throws IOException {
-                    int r = super.read(b, off, len);
-                    if (r != -1) {
-                        total += r;
-                        assetManager.fireDownloadProgress(key, total);
-                    }
-                    return r;
-                }
+				@Override
+				public int read(byte[] b) throws IOException {
+					int r = super.read(b);
+					if (r != -1) {
+						total += r;
+						assetManager.fireDownloadProgress(key, total);
+					}
+					return r;
+				}
 
-                @Override
-                public void close() throws IOException {
-                    super.close();
-                    assetManager.fireDownloadComplete(key);
-                }
-            };
-        } else {
-            return conn.getInputStream();
-        }
-    }
+				@Override
+				public int read(byte[] b, int off, int len) throws IOException {
+					int r = super.read(b, off, len);
+					if (r != -1) {
+						total += r;
+						assetManager.fireDownloadProgress(key, total);
+					}
+					return r;
+				}
 
-    public static class UrlAssetInfo extends ExtendedAssetInfo {
+				@Override
+				public void close() throws IOException {
+					super.close();
+					assetManager.fireDownloadComplete(key);
+				}
+			};
+		} else {
+			return conn.getInputStream();
+		}
+	}
 
-        private URL url;
-        private InputStream in;
-        private long lastModified;
-        private long size;
-        private final long ifModifiedSince;
-        private final AbstractServerLocator locator;
+	public static class UrlAssetInfo extends ExtendedAssetInfo {
 
-        private UrlAssetInfo(AssetManager assetManager, AssetKey key, URL url, InputStream in, long ifModifiedSince, AbstractServerLocator locator) throws IOException {
-            super(assetManager, key);
-            this.locator = locator;
-            this.url = url;
-            this.ifModifiedSince = ifModifiedSince;
-            this.in = in;
-        }
+		private URL url;
+		private InputStream in;
+		private long lastModified;
+		private long size;
+		private final long ifModifiedSince;
+		private final AbstractServerLocator locator;
 
-        public boolean hasInitialConnection() {
-            return in != null;
-        }
+		private UrlAssetInfo(AssetManager assetManager, AssetKey key, URL url, InputStream in, long ifModifiedSince,
+				AbstractServerLocator locator) throws IOException {
+			super(assetManager, key);
+			this.locator = locator;
+			this.url = url;
+			this.ifModifiedSince = ifModifiedSince;
+			this.in = in;
+		}
 
-        @Override
-        public InputStream openStream() {
-            if (in != null) {
-                // Reuse the already existing stream (only once)
-                InputStream in2 = in;
-                in = null;
-                return in2;
-            } else {
-                // Create a new stream for subsequent invocations.
-                try {
-                    URLConnection conn = url.openConnection();
-                    if (ifModifiedSince != -1 && locator.useCaching) {
-                        conn.setIfModifiedSince(ifModifiedSince);
-                    }
-        conn.setConnectTimeout(connectTimeout);
-        conn.setReadTimeout(readTimeout);
+		public boolean hasInitialConnection() {
+			return in != null;
+		}
 
-                    if (conn instanceof HttpURLConnection) {
-                        int resp = ((HttpURLConnection) conn).getResponseCode();
-                        if (resp == 304) {
-                            if (locator.useCaching) {
-                                // Content has not changed, return original cached content
-                                if (LOG.isLoggable(Level.FINE)) {
-                                    LOG.fine(String.format("Content %s has not changed, using cached version"));
-                                }
-                                return locator.getCachedAssetInfo(manager, key).openStream();
-                            } else {
-                                throw new AssetLoadException("Caching is not enabled, unexpected 304 response.");
-                            }
-                        }
-                    }
+		@Override
+		public InputStream openStream() {
+			if (in != null) {
+				// Reuse the already existing stream (only once)
+				InputStream in2 = in;
+				in = null;
+				return in2;
+			} else {
+				// Create a new stream for subsequent invocations.
+				try {
+					URLConnection conn = url.openConnection();
+					if (ifModifiedSince != -1 && locator.useCaching) {
+						conn.setIfModifiedSince(ifModifiedSince);
+					}
+					conn.setConnectTimeout(connectTimeout);
+					conn.setReadTimeout(readTimeout);
 
-                    lastModified = conn.getLastModified();
-                    if (lastModified == 0) {
-                        lastModified = -1;
-                    }
-                    size = conn.getContentLength();
-                    conn.setUseCaches(false);
-                    return locator.getStream((ServerAssetManager) getManager(), getKey(), conn, size);
-                } catch (IOException ex) {
-                    throw new AssetLoadException("Failed to read URL " + url, ex);
-                }
-            }
-        }
+					if (conn instanceof HttpURLConnection) {
+						int resp = ((HttpURLConnection) conn).getResponseCode();
+						if (resp == 304) {
+							if (locator.useCaching) {
+								// Content has not changed, return original
+								// cached content
+								if (LOG.isLoggable(Level.FINE)) {
+									LOG.fine(String.format("Content %s has not changed, using cached version"));
+								}
+								return locator.getCachedAssetInfo(manager, key).openStream();
+							} else {
+								throw new AssetLoadException("Caching is not enabled, unexpected 304 response.");
+							}
+						}
+					}
 
-        @Override
-        public long getSize() {
-            return size;
-        }
+					lastModified = conn.getLastModified();
+					if (lastModified == 0) {
+						lastModified = -1;
+					}
+					size = conn.getContentLength();
+					conn.setUseCaches(false);
+					return locator.getStream((ServerAssetManager) getManager(), getKey(), conn, size);
+				} catch (IOException ex) {
+					throw new AssetLoadException("Failed to read URL " + url, ex);
+				}
+			}
+		}
 
-        @Override
-        public long getLastModified() {
-            return lastModified;
-        }
-    }
+		@Override
+		public long getSize() {
+			return size;
+		}
+
+		@Override
+		public long getLastModified() {
+			return lastModified;
+		}
+	}
 }

@@ -30,6 +30,7 @@
 package icemoon.iceloader.locators;
 
 import icemoon.iceloader.AssetIndex;
+import icemoon.iceloader.ExtendedAssetInfo;
 import icemoon.iceloader.IndexedAssetLocator;
 
 import java.io.IOException;
@@ -73,7 +74,10 @@ public class ClasspathLocator extends com.jme3.asset.plugins.ClasspathLocator im
             try {
                 for (Enumeration<URL> en = getClass().getClassLoader().getResources(AssetIndex.DEFAULT_RESOURCE_NAME); en.hasMoreElements();) {
                     URL u = en.nextElement();
+                    LOG.info("Indexing " + u);
                     assetIndex.load(u.openStream());
+					assetIndex.configure(0,
+							getClass().getSimpleName().toLowerCase() + "://" + AssetIndex.DEFAULT_RESOURCE_NAME);
                 }
             } catch (IOException ioe) {
                 LOG.log(Level.WARNING, String.format("Could not index classpath assets.", ioe));

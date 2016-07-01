@@ -29,7 +29,6 @@
  */
 package icemoon.iceloader;
 
-import com.jme3.asset.AssetManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,69 +38,96 @@ import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.jme3.asset.AssetManager;
+
 public class AssetIndex extends AbstractConfiguration<List<IndexItem>> {
 
-    public final static String DEFAULT_RESOURCE_NAME = "index.dat";
+	public final static String DEFAULT_RESOURCE_NAME = "index.dat";
 
-    public AssetIndex(AssetManager mgr) {
-        super(new ArrayList<IndexItem>(), mgr);
-    }
+	private long lastModified;
+	private String id;
 
-    public AssetIndex(String resourceName, AssetManager assetManager) {
-        super(resourceName, assetManager, new ArrayList<IndexItem>());
-    }
-    
-    public void load(InputStream in) throws IOException {
-        load(in, getBackingObject());
-    }
+	public AssetIndex(AssetManager mgr) {
+		super(new ArrayList<IndexItem>(), mgr);
+	}
 
-    @Override
-    protected void load(InputStream in, List<IndexItem> backingObject) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(in));
-        String line;
-        while ((line = br.readLine()) != null) {
-            line = line.trim();
-            int idx = line.indexOf('\t');
-            int idx2 = line.indexOf('\t', idx + 1);
-            backingObject.add(new IndexItem(line.substring(0, idx), Long.parseLong(line.substring(idx + 1, idx2)), Long.parseLong(line.substring(idx2 + 1))));
-        }
-    }
-    
-    public boolean hasAsset(String name) {
-        for(IndexItem i : getBackingObject()) {
-            if(i.getName().equals(name)) {
-                return true;
-            }
-        }
-        return false;
-    }
+	public AssetIndex(String resourceName, AssetManager assetManager) {
+		super(resourceName, assetManager, new ArrayList<IndexItem>());
+	}
+	
+	public void configure(long lastModified, String id) {
+		this.lastModified = lastModified;
+		this.id = id;
+	}
 
-    public Collection<String> getAssetNamesMatching(Pattern p) {
-        List<String> l = new ArrayList<String>();
-        for (IndexItem s : getBackingObject()) {
-            if (p.matcher(s.getName()).matches()) {
-                l.add(s.getName());
-            }
-        }
-        return l;
-    }
-    
-    public IndexItem getAsset(String name) {
-        for (IndexItem s : getBackingObject()) {
-            if (s.getName().equals(name)) {
-                return s;
-            }
-        }
-        return null;
-    }
+	public void load(InputStream in) throws IOException {
+		load(in, getBackingObject());
+	}
 
-    public Collection<? extends IndexItem> getAssetsMatching(Pattern p) {
-        List<IndexItem> l = new ArrayList<IndexItem>();
-        for (IndexItem s : getBackingObject()) {
-            if (p.matcher(s.getName()).matches()) {
-                l.add(s);
-            }
-        }
-        return l;
-    }
+	public String getId() {
+		return id;
+	}
+
+	public long getLastModified() {
+		return lastModified;
+	}
+
+	@Override
+	protected void load(InputStream in, List<IndexItem> backingObject) throws IOException {
+		BufferedReader br = new BufferedReader(new InputStreamReader(in));
+		String line;
+		int lineNo = 0;
+		while ((line = br.readLine()) != null) {
+			line = line.trim();
+			int idx = line.indexOf('\t');
+			int idx2 = line.indexOf('\t', idx + 1);
+			try {
+				backingObject.add(new IndexItem(line.substring(0, idx), Long.parseLong(line.substring(idx + 1, idx2)), Long
+						.parseLong(line.substring(idx2 + 1))));
+			} catch (IndexOutOfBoundsException nfe) {
+				System.err.println("[WARNING] Line " + lineNo + " ('" + line + "') could not be parsed. " + nfe.getMessage());
+			} catch (NumberFormatException nfe) {
+				System.err.println("[WARNING] Line " + lineNo + " ('" + line + "') could not be parsed. " + nfe.getMessage());
+			}
+			lineNo++;
+		}
+	}
+
+	public boolean hasAsset(String name) {
+		for (IndexItem i : getBackingObject()) {
+			if (i.getName().equals(name)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public Collection<String> getAssetNamesMatching(Pattern p) {
+		List<String> l = new ArrayList<String>();
+		for (IndexItem s : getBackingObject()) {
+			if (p.matcher(s.getName()).matches()) {
+				l.add(s.getName());
+			}
+		}
+		return l;
+	}
+
+	public IndexItem getAsset(String name) {
+		for (IndexItem s : getBackingObject()) {
+			if (s.getName().equals(name)) {
+				return s;
+			}
+		}
+		return null;
+	}
+
+	public Collection<? extends IndexItem> getAssetsMatching(Pattern p) {
+		List<IndexItem> l = new ArrayList<IndexItem>();
+		for (IndexItem s : getBackingObject()) {
+			if (p.matcher(s.getName()).matches()) {
+				l.add(s);
+			}
+		}
+		return l;
+	}
 }

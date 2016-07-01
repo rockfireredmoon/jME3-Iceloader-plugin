@@ -67,12 +67,19 @@ public class FileLocator extends AbstractVFSLocator implements IndexedAssetLocat
             assetIndex = new AssetIndex(assetManager);
             FileObject storeRoot = getStoreRoot();
             try {
+            	long lastModified = 0;
                 for (FileObject ob : storeRoot.findFiles(new AllFileSelector())) {
                     if (ob.getType().equals(FileType.FILE)) {
+                    	long lm = ob.getContent().getLastModifiedTime(); 
+                    	if(lm > lastModified) {
+                    		lastModified = lm;
+                    	}
                         final String path = storeRoot.getName().getRelativeName(ob.getName());
                         assetIndex.getBackingObject().add(new IndexItem(path));
                     }
                 }
+    			assetIndex.configure(lastModified,
+    					getClass().getSimpleName().toLowerCase() + "://" + AssetIndex.DEFAULT_RESOURCE_NAME);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load asset index.", e);
             }

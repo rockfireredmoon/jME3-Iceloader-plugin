@@ -39,98 +39,70 @@ import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public abstract class AbstractConfiguration<B> {
+public abstract class AbstractConfiguration<B> extends BaseConfiguration<B> {
 
-    private final static Logger LOG = Logger.getLogger(AbstractConfiguration.class.getName());
-    protected String assetPath;
-    protected final B backingObject;
+	private final static Logger LOG = Logger.getLogger(AbstractConfiguration.class.getName());
     protected final AssetManager assetManager;
 
-    /**
-     * Sub-classes may need to set instance variables before loading, they should use this
-     * default constructor.
-     *
-     * @param backingObject backing object
-     * @param assetManager asset manager
-     */
-    public AbstractConfiguration(B backingObject, AssetManager assetManager) {
-        this.backingObject = backingObject;
-        this.assetManager = assetManager;
-    }
+	/**
+	 * Sub-classes may need to set instance variables before loading, they
+	 * should use this default constructor.
+	 *
+	 * @param backingObject
+	 *            backing object
+	 * @param assetManager
+	 *            asset manager
+	 */
+	public AbstractConfiguration(B backingObject, AssetManager assetManager) {
+		super(null, backingObject);
+		this.assetManager = assetManager;
+	}
 
-    /**
-     * Load template default from the provided classloader.
-     *
-     * @param assetBaseName name of configuration asset
-     * @param assetManager the asset manager
-     * @param backingObject backing object
-     */
-    public AbstractConfiguration(String assetBaseName, AssetManager assetManager, B backingObject) {
-        this.assetPath = assetBaseName;
-        this.assetManager = assetManager;
-        this.backingObject = backingObject;
-        loadConfigurationAsset();
-    }
+	/**
+	 * Load template default from the provided classloader.
+	 *
+	 * @param assetBaseName
+	 *            name of configuration asset
+	 * @param assetManager
+	 *            the asset manager
+	 * @param backingObject
+	 *            backing object
+	 */
+	public AbstractConfiguration(String assetPath, AssetManager assetManager, B backingObject) {
+		super(assetPath, backingObject);
+		this.assetManager = assetManager;
+		if (assetPath != null)
+			loadConfigurationAsset();
+	}
 
-    public B getBackingObject() {
-        return backingObject;
-    }
+	public B getBackingObject() {
+		return backingObject;
+	}
 
-    protected abstract void load(InputStream in, B backingObject) throws IOException;
+	protected abstract void load(InputStream in, B backingObject) throws IOException;
 
-    public String getAssetFolder() {
-        int dx = assetPath.lastIndexOf('/');
-        return dx == -1 ? null : assetPath.substring(0, dx);
-    }
+	protected final void loadConfigurationAsset() {
+		if (LOG.isLoggable(Level.FINE)) {
+			LOG.fine(String.format("Loading %s", assetPath));
+		}
 
-    public String relativize(String resource) {
-        if (resource == null) {
-            return null;
-        }
-        String af = getAssetFolder();
-        if (resource.startsWith(af)) {
-            return resource.substring(af.length() + 1);
-        }
-        return resource;
-    }
+		AssetInfo info = assetManager.locateAsset(new AssetKey<Object>(assetPath));
+		if (info == null) {
+			throw new AssetNotFoundException("Could not find configuration resource " + assetPath);
+		}
 
-    public String absolutize(String name) {
-        if (name == null) {
-            return null;
-        }
-        return getAssetFolder() + "/" + name;
-    }
-    
-    public String getAbsoluteAssetPath() {
-        return absolutize(getAssetPath());
-    }
-
-    public String getAssetPath() {
-        return assetPath;
-    }
-
-    protected final void loadConfigurationAsset() {
-        if (LOG.isLoggable(Level.FINE)) {
-            LOG.fine(String.format("Loading %s", assetPath));
-        }
-
-        AssetInfo info = assetManager.locateAsset(new AssetKey<Object>(assetPath));
-        if (info == null) {
-            throw new AssetNotFoundException("Could not find configuration resource " + assetPath);
-        }
-
-        try {
-            InputStream in = info.openStream();
-            if (in == null) {
-                throw new AssetNotFoundException("Could not find configuration resource " + assetPath);
-            }
-            try {
-                load(in, backingObject);
-            } finally {
-                in.close();
-            }
-        } catch (IOException ioe) {
-            throw new AssetLoadException("Failed to load configuration resource.", ioe);
-        }
-    }
+		try {
+			InputStream in = info.openStream();
+			if (in == null) {
+				throw new AssetNotFoundException("Could not find configuration resource " + assetPath);
+			}
+			try {
+				load(in, backingObject);
+			} finally {
+				in.close();
+			}
+		} catch (IOException ioe) {
+			throw new AssetLoadException("Failed to load configuration resource.", ioe);
+		}
+	}
 }
