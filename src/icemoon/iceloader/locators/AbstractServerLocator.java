@@ -41,6 +41,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import icemoon.iceloader.AssetIndex;
@@ -60,6 +61,7 @@ public abstract class AbstractServerLocator implements IndexedAssetLocator {
 	}
 
 	public static void setServerRoot(URL serverRoot) {
+		if(!Objects.equals(AbstractServerLocator.serverRoot, serverRoot))
 		AbstractServerLocator.serverRoot = serverRoot;
 	}
 

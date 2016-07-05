@@ -55,7 +55,15 @@ public class CachingAssetInfo extends AssetInfo {
         this.cacheRoot = cacheRoot;
     }
 
-    @Override
+    public AssetInfo getDelegate() {
+		return delegate;
+	}
+
+	public FileObject getCacheRoot() {
+		return cacheRoot;
+	}
+
+	@Override
     public InputStream openStream() {
         final InputStream in = delegate.openStream();
         long lastModified = -1;

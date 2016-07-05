@@ -57,4 +57,8 @@ public class EncryptedServerLocator extends ServerLocator {
         }
         return info;
     }
+    
+	public AssetIndex getIndex(AssetManager assetManager) {
+		return super.getIndex(assetManager);
+	}
 }

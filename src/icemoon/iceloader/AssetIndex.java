@@ -54,7 +54,7 @@ public class AssetIndex extends AbstractConfiguration<List<IndexItem>> {
 	public AssetIndex(String resourceName, AssetManager assetManager) {
 		super(resourceName, assetManager, new ArrayList<IndexItem>());
 	}
-	
+
 	public void configure(long lastModified, String id) {
 		this.lastModified = lastModified;
 		this.id = id;
@@ -81,13 +81,26 @@ public class AssetIndex extends AbstractConfiguration<List<IndexItem>> {
 			line = line.trim();
 			int idx = line.indexOf('\t');
 			int idx2 = line.indexOf('\t', idx + 1);
+			int idx3 = line.indexOf('\t', idx2 + 1);
 			try {
-				backingObject.add(new IndexItem(line.substring(0, idx), Long.parseLong(line.substring(idx + 1, idx2)), Long
-						.parseLong(line.substring(idx2 + 1))));
+				String name = line.substring(0, idx);
+				long lastMod = Long.parseLong(line.substring(idx + 1, idx2));
+				long size = 0;
+				long unprocessedSize = -1;
+				if (idx3 > -1) {
+					size = Long.parseLong(line.substring(idx2 + 1, idx3));
+					Long.parseLong(line.substring(idx3 + 1));
+				}
+				else {
+					size = Long.parseLong(line.substring(idx2 + 1));
+				}
+				backingObject.add(new IndexItem(name, lastMod, size, unprocessedSize));
 			} catch (IndexOutOfBoundsException nfe) {
-				System.err.println("[WARNING] Line " + lineNo + " ('" + line + "') could not be parsed. " + nfe.getMessage());
+				System.err.println(
+						"[WARNING] Line " + lineNo + " ('" + line + "') could not be parsed. " + nfe.getMessage());
 			} catch (NumberFormatException nfe) {
-				System.err.println("[WARNING] Line " + lineNo + " ('" + line + "') could not be parsed. " + nfe.getMessage());
+				System.err.println(
+						"[WARNING] Line " + lineNo + " ('" + line + "') could not be parsed. " + nfe.getMessage());
 			}
 			lineNo++;
 		}

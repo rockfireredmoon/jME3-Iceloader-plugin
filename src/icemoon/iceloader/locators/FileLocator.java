@@ -29,62 +29,66 @@
  */
 package icemoon.iceloader.locators;
 
-import com.jme3.asset.AssetLoadException;
-import com.jme3.asset.AssetManager;
-import icemoon.iceloader.AbstractVFSLocator;
-import static icemoon.iceloader.AbstractVFSLocator.setDefaultStoreRoot;
-import icemoon.iceloader.AssetIndex;
-import icemoon.iceloader.IndexItem;
-import icemoon.iceloader.IndexedAssetLocator;
 import java.io.File;
 import java.util.logging.Logger;
+
 import org.apache.commons.vfs2.AllFileSelector;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.VFS;
 
+import com.jme3.asset.AssetLoadException;
+import com.jme3.asset.AssetManager;
+
+import icemoon.iceloader.AbstractVFSLocator;
+import icemoon.iceloader.AssetIndex;
+import icemoon.iceloader.IndexItem;
+import icemoon.iceloader.IndexedAssetLocator;
+
 /**
- * A locator that will work with any Commons VFS file. The default location is determined
- * by the system property <strong>iceloader.fileLocation</strong> which itself defaults to
- * the local folder <strong>./assets</strong>.
+ * A locator that will work with any Commons VFS file. The default location is
+ * determined by the system property <strong>iceloader.fileLocation</strong>
+ * which itself defaults to the local folder <strong>./assets</strong>.
  */
 public class FileLocator extends AbstractVFSLocator implements IndexedAssetLocator {
 
-    private static final Logger LOG = Logger.getLogger(FileLocator.class.getName());
+	private static final Logger LOG = Logger.getLogger(FileLocator.class.getName());
 
-    static {
-        try {
-            setDefaultStoreRoot(VFS.getManager().resolveFile(System.getProperty("iceloader.fileLocation", new File("assets/").getCanonicalPath())));
-        } catch (Exception ex) {
-            throw new AssetLoadException("Root path is invalid", ex);
-        }
-    }
-    private boolean loadedAssetIndex;
-    private AssetIndex assetIndex;
+	static {
+		try {
+			setDefaultStoreRoot(VFS.getManager()
+					.resolveFile(System.getProperty("iceloader.fileLocation", new File("assets/").getCanonicalPath())));
+		} catch (Exception ex) {
+			throw new AssetLoadException("Root path is invalid", ex);
+		}
+	}
+	private boolean loadedAssetIndex;
+	private AssetIndex assetIndex;
 
-    public AssetIndex getIndex(AssetManager assetManager) {
-        if (!loadedAssetIndex) {
-            assetIndex = new AssetIndex(assetManager);
-            FileObject storeRoot = getStoreRoot();
-            try {
-            	long lastModified = 0;
-                for (FileObject ob : storeRoot.findFiles(new AllFileSelector())) {
-                    if (ob.getType().equals(FileType.FILE)) {
-                    	long lm = ob.getContent().getLastModifiedTime(); 
-                    	if(lm > lastModified) {
-                    		lastModified = lm;
-                    	}
-                        final String path = storeRoot.getName().getRelativeName(ob.getName());
-                        assetIndex.getBackingObject().add(new IndexItem(path));
-                    }
-                }
-    			assetIndex.configure(lastModified,
-    					getClass().getSimpleName().toLowerCase() + "://" + AssetIndex.DEFAULT_RESOURCE_NAME);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to load asset index.", e);
-            }
-            loadedAssetIndex = true;
-        }
-        return assetIndex;
-    }
+	public AssetIndex getIndex(AssetManager assetManager) {
+		if (!loadedAssetIndex) {
+			assetIndex = new AssetIndex(assetManager);
+			FileObject storeRoot = getStoreRoot();
+			try {
+				long lastModified = 0;
+				for (FileObject ob : storeRoot.findFiles(new AllFileSelector())) {
+					if (ob.getType().equals(FileType.FILE)) {
+						long lm = ob.getContent().getLastModifiedTime();
+						if (lm > lastModified) {
+							lastModified = lm;
+						}
+						final String path = storeRoot.getName().getRelativeName(ob.getName());
+						assetIndex.getBackingObject()
+								.add(new IndexItem(path, lastModified, ob.getContent().getSize(), -1));
+					}
+				}
+				assetIndex.configure(lastModified,
+						getClass().getSimpleName().toLowerCase() + "://" + AssetIndex.DEFAULT_RESOURCE_NAME);
+			} catch (Exception e) {
+				throw new RuntimeException("Failed to load asset index.", e);
+			}
+			loadedAssetIndex = true;
+		}
+		return assetIndex;
+	}
 }

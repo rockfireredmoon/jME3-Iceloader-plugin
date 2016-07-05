@@ -33,17 +33,22 @@ public class IndexItem implements Comparable<IndexItem>{
     private String name;
     private long lastModified;
     private long size;
+    private long unprocessedSize = -1;
 
-    public IndexItem(String name) {
-        this(name, Long.MAX_VALUE, -1);
+    public IndexItem(String name, long lastMod) {
+        this(name, Long.MAX_VALUE, -1, -1);
     }
-    public IndexItem(String name, long lastModified, long size) {
+    public IndexItem(String name, long lastModified, long size, long unprocessedSize) {
         this.name = name;
         this.lastModified = lastModified;
         this.size = size;
+        this.unprocessedSize = unprocessedSize;
     }
 
-    public String getName() {
+    public long getUnprocessSize() {
+		return unprocessedSize;
+	}
+	public String getName() {
         return name;
     }
 

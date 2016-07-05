@@ -29,11 +29,10 @@
  */
 package icemoon.iceloader;
 
-import icemoon.iceloader.locators.ServerLocator;
-
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,12 +46,12 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLocator;
 import com.jme3.asset.DesktopAssetManager;
 
+import icemoon.iceloader.locators.ServerLocator;
+
 /**
  * Extension of {@link DesktopAssetManager}, mainly to allow indexes of assets
- * available.
- * Also provided are events for progress of assets that are being downloading
- * from a
- * remote location.
+ * available. Also provided are events for progress of assets that are being
+ * downloading from a remote location.
  */
 public class ServerAssetManager extends DesktopAssetManager {
 
@@ -94,9 +93,9 @@ public class ServerAssetManager extends DesktopAssetManager {
 	private static final Logger LOG = Logger.getLogger(ServerAssetManager.class.getName());
 	private SecretKeySpec secret;
 	private List<AssetIndex> indexes = new ArrayList<AssetIndex>();
-	private List<Class<? extends IndexedAssetLocator>> locators;
+	private Map<String, Class<? extends AssetLocator>> locators;
 	private List<DownloadingListener> downloadingListeners = new ArrayList<DownloadingListener>();
-	private Map<String, Set<String>> assetPatternsCache = new HashMap<String, Set<String>>();
+	private Map<String, Set<String>> assetPatternsCache = new LinkedHashMap<String, Set<String>>();
 
 	public ServerAssetManager() {
 		init();
@@ -133,6 +132,25 @@ public class ServerAssetManager extends DesktopAssetManager {
 		downloadingListeners.remove(downloadingListener);
 	}
 
+	public void serverAssetLocationChanged() {
+		reregisterLocators();
+		reindex();
+	}
+
+	/**
+	 * Re-register (and so re-create) all of the locators.
+	 */
+	public void reregisterLocators() {
+		Map<String, Class<? extends AssetLocator>> lo = new LinkedHashMap<String, Class<? extends AssetLocator>>(
+				locators);
+		for (Map.Entry<String, Class<? extends AssetLocator>> l : lo.entrySet()) {
+			unregisterLocator(l.getKey(), l.getValue());
+		}
+		for (Map.Entry<String, Class<? extends AssetLocator>> l : lo.entrySet()) {
+			registerLocator(l.getKey(), l.getValue());
+		}
+	}
+
 	@Override
 	public void registerLocator(String rootPath, Class<? extends AssetLocator> locatorClass) {
 		super.registerLocator(rootPath, locatorClass);
@@ -142,34 +160,40 @@ public class ServerAssetManager extends DesktopAssetManager {
 		if (IndexedAssetLocator.class.isAssignableFrom(locatorClass)) {
 			final Class<? extends IndexedAssetLocator> clazz = (Class<? extends IndexedAssetLocator>) locatorClass;
 			if (locators == null) {
-				locators = new ArrayList<Class<? extends IndexedAssetLocator>>();
+				locators = new HashMap<String, Class<? extends AssetLocator>>();
 			}
-			locators.add(clazz);
+			locators.put(rootPath, clazz);
 		}
 	}
 
 	/**
 	 * Build the indexes. Should be called only once after the asset manager and
-	 * all the
-	 * locators have been configured.
+	 * all the locators have been configured.
 	 */
 	public void index() {
+		int indexers = 0;
 		if (locators != null) {
-			for (Class<? extends IndexedAssetLocator> clazz : locators) {
-				try {
-					IndexedAssetLocator loc = (IndexedAssetLocator) clazz.newInstance();
-					AssetIndex index = loc.getIndex(this);
-					if (index == null) {
-						LOG.info(String.format("No asset index for %s", clazz));
-					} else {
-						indexes.add(index);
-						LOG.info(String.format("Asset index for %s contains %d entries", clazz, index.getBackingObject().size()));
+			for (Map.Entry<String, Class<? extends AssetLocator>> clazz : locators.entrySet()) {
+				if (IndexedAssetLocator.class.isAssignableFrom(clazz.getValue())) {
+					indexers++;
+					try {
+						IndexedAssetLocator loc = (IndexedAssetLocator) clazz.getValue().newInstance();
+						AssetIndex index = loc.getIndex(this);
+						if (index == null) {
+							LOG.info(String.format("No asset index for %s", clazz));
+						} else {
+							indexes.add(index);
+							LOG.info(String.format("Asset index for %s contains %d entries", clazz,
+									index.getBackingObject().size()));
+						}
+					} catch (Exception ex) {
+						throw new RuntimeException(ex);
 					}
-				} catch (Exception ex) {
-					throw new RuntimeException(ex);
 				}
 			}
-		} else {
+		}
+
+		if (indexers == 0) {
 			LOG.warning("No asset indexing done, no locators registered.");
 		}
 	}
@@ -255,7 +279,8 @@ public class ServerAssetManager extends DesktopAssetManager {
 			}
 			assetPatternsCache.put(k, assets);
 		}
-		LOG.info(String.format("Took %d ms to find %s (resulted in %d hits)", System.currentTimeMillis() - now, pattern, assets.size()));
+		LOG.info(String.format("Took %d ms to find %s (resulted in %d hits)", System.currentTimeMillis() - now, pattern,
+				assets.size()));
 		return assets;
 	}
 
