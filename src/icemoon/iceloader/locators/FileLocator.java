@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -30,7 +30,6 @@
 package icemoon.iceloader.locators;
 
 import java.io.File;
-import java.util.logging.Logger;
 
 import org.apache.commons.vfs2.AllFileSelector;
 import org.apache.commons.vfs2.FileObject;
@@ -51,8 +50,6 @@ import icemoon.iceloader.IndexedAssetLocator;
  * which itself defaults to the local folder <strong>./assets</strong>.
  */
 public class FileLocator extends AbstractVFSLocator implements IndexedAssetLocator {
-
-	private static final Logger LOG = Logger.getLogger(FileLocator.class.getName());
 
 	static {
 		try {

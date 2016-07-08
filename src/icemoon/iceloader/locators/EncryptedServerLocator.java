@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -45,7 +45,7 @@ import icemoon.iceloader.EncryptionContext;
 public class EncryptedServerLocator extends ServerLocator {
 
     @Override
-    public AssetInfo locate(AssetManager manager, AssetKey key) {
+    public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {
         final AssetInfo info = super.locate(manager, key);
         if (info != null && !(info instanceof DecryptedAssetInfo) && !key.getName().equals(AssetIndex.DEFAULT_RESOURCE_NAME)) {
             try {

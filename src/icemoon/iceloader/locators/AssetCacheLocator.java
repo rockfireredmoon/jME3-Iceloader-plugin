@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,94 +29,146 @@
  */
 package icemoon.iceloader.locators;
 
-import com.jme3.asset.AssetInfo;
-import com.jme3.asset.AssetKey;
-import com.jme3.asset.AssetLoadException;
-import com.jme3.asset.AssetManager;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.VFS;
+
+import com.jme3.asset.AssetInfo;
+import com.jme3.asset.AssetKey;
+import com.jme3.asset.AssetLoadException;
+import com.jme3.asset.AssetManager;
+
 import icemoon.iceloader.AbstractVFSLocator;
+import icemoon.iceloader.AssetIndex;
+import icemoon.iceloader.IndexItem;
+import icemoon.iceloader.JarAssetInfo;
+import icemoon.iceloader.ServerAssetManager;
 
 /**
- * This will find in your local cache, that is is populated by other locators that may
- * download assets. If an asset is found here, it will be returned to JME (eventually,
- * after some an optional freshness check).
+ * This will find in your local cache, that is is populated by other locators
+ * that may download assets. If an asset is found here, it will be returned to
+ * JME (eventually, after some an optional freshness check).
  */
 public class AssetCacheLocator extends AbstractVFSLocator {
 
-    private static final Logger LOG = Logger.getLogger(AssetCacheLocator.class.getName());
-    private static FileObject cacheRoot;
-    private static boolean inUse;
-    private static Map<String, AssetInfo> cachedAssetInfo = new HashMap<String, AssetInfo>();
+	private static final Logger LOG = Logger.getLogger(AssetCacheLocator.class.getName());
+	private static FileObject cacheRoot;
+	private static boolean inUse;
+	private static Map<String, AssetInfo> cachedAssetInfo = new HashMap<String, AssetInfo>();
 
-    static {
-        try {
-            cacheRoot = VFS.getManager().resolveFile(System.getProperty("iceloader.assetCache", System.getProperty("java.io.tmpdir") + File.separator + "icescene-cache"));
-        } catch (FileSystemException ex) {
-            throw new AssetLoadException("Root path is invalid", ex);
-        }
-    }
+	static {
+		try {
+			cacheRoot = VFS.getManager().resolveFile(System.getProperty("iceloader.assetCache",
+					System.getProperty("java.io.tmpdir") + File.separator + "icescene-cache"));
+		} catch (FileSystemException ex) {
+			throw new AssetLoadException("Root path is invalid", ex);
+		}
+	}
 
-    public AssetCacheLocator() {
-        super(cacheRoot);
-        inUse = true;
-    }
+	public AssetCacheLocator() {
+		super(cacheRoot);
+		inUse = true;
+	}
 
-    @Override
-    public AssetInfo locate(AssetManager manager, AssetKey key) {
-        AssetInfo info = super.locate(manager, key);
-        if (info == null) {
-            if (LOG.isLoggable(Level.FINE)) {
-                LOG.fine(String.format("%s not located in cache.", key));
-            }
-            cachedAssetInfo.remove(key.getName());
-        } else {
-            if (cachedAssetInfo.containsKey(key.getName())) {
-                // Already done this once, no need to check for freshness again, just return the cached resource
-                if (LOG.isLoggable(Level.FINE)) {
-                    LOG.fine(String.format("Just returning cached copy of %s, no need to check for freshness within this runtime", key.getName()));
-                }
-            } else {
-                cachedAssetInfo.put(key.getName(), info);
-                if ("true".equalsIgnoreCase(System.getProperty("icescene.checkCacheForUpdates", "true"))) {
-                    // Don't return the asset info just yet. Let other methods try first. For example,
-                    // a locator that loads from HTTP might check if the cached version is out of date
-                    // before downloading. If there are no changes, it can return this cached version.
-                    // Note, this won't work with standard JME3 locators, it requires special support
-                    // for retrieving the cached version via getCachedAssetInfo() here.
-                    if (LOG.isLoggable(Level.FINE)) {
-                        LOG.fine(String.format("%s located in cache, checking for updates before returning this copy.", key));
-                    }
-                    info = null;
-                } else {
-                    if (LOG.isLoggable(Level.FINE)) {
-                        LOG.fine(String.format("%s located in cache, returning cached copy.", key));
-                    }
-                }
-            }
-        }
-        return info;
-    }
+	@SuppressWarnings("rawtypes")
+	@Override
+	public AssetInfo locate(AssetManager manager, AssetKey key) {
 
-    public static AssetInfo getCachedAssetInfo(AssetKey key) {
-        return cachedAssetInfo.get(key.getName());
-    }
+		String name = key.getName();
+		String suffix = null;
+		IndexItem indexItem = null;
 
-    public static boolean isInUse() {
-        return inUse;
-    }
+		if (!name.equals(AssetIndex.DEFAULT_RESOURCE_NAME)) {
+			if (manager instanceof ServerAssetManager) {
+				indexItem = ((ServerAssetManager) manager).getAsset(key.getName());
+				if (indexItem != null) {
+					String folder = key.getFolder();
+					while (folder.endsWith("/"))
+						folder = folder.substring(0, folder.length() - 1);
+					IndexItem archiveIndexItem = ((ServerAssetManager) manager).getAsset(folder + ".jar");
+					if (archiveIndexItem == null) {
+						if (LOG.isLoggable(Level.FINE)) {
+							LOG.fine(String.format("%s is not in an indexed archive.", key));
+						}
+					} else {
+						if (LOG.isLoggable(Level.FINE)) {
+							LOG.fine(String.format("%s has an indexed archive.", key));
+						}
+						suffix = indexItem.getName().substring(folder.length() + 1);
+						indexItem = archiveIndexItem;
+						key = new AssetKey(name = archiveIndexItem.getName());
+					}
+				}
+			}
+		}
 
-    public static FileObject getVFSRoot() {
-        return cacheRoot;
-    }
+		AssetInfo info = super.locate(manager, key);
+		if (info == null) {
+			if (LOG.isLoggable(Level.FINE)) {
+				LOG.fine(String.format("%s not located in cache.", key));
+			}
+			cachedAssetInfo.remove(key.getName());
+		} else {
+			if (cachedAssetInfo.containsKey(key.getName())) {
+				// Already done this once, no need to check for freshness again,
+				// just return the cached resource
+				if (LOG.isLoggable(Level.FINE)) {
+					LOG.fine(String.format(
+							"Just returning cached copy of %s, no need to check for freshness within this runtime",
+							key.getName()));
+				}
+			} else {
+				cachedAssetInfo.put(key.getName(), info);
+				if ("true".equalsIgnoreCase(System.getProperty("icescene.checkCacheForUpdates", "true"))) {
+					// Don't return the asset info just yet. Let other methods
+					// try first. For example,
+					// a locator that loads from HTTP might check if the cached
+					// version is out of date
+					// before downloading. If there are no changes, it can
+					// return this cached version.
+					// Note, this won't work with standard JME3 locators, it
+					// requires special support
+					// for retrieving the cached version via
+					// getCachedAssetInfo() here.
+					if (LOG.isLoggable(Level.FINE)) {
+						LOG.fine(String.format("%s located in cache, checking for updates before returning this copy.",
+								key));
+					}
+					info = null;
+				} else {
+					if (LOG.isLoggable(Level.FINE)) {
+						LOG.fine(String.format("%s located in cache, returning cached copy.", key));
+					}
+				}
+			}
+		}
+		
+		if(info != null && suffix != null) {
+			info = new JarAssetInfo(manager, key, suffix, info);
+		}
+		
+		return info;
+	}
 
-    public static void setVFSRoot(FileObject cacheRoot) {
-        AssetCacheLocator.cacheRoot = cacheRoot;
-    }
+	public static AssetInfo getCachedAssetInfo(AssetKey<?> key) {
+		return cachedAssetInfo.get(key.getName());
+	}
+
+	public static boolean isInUse() {
+		return inUse;
+	}
+
+	public static FileObject getVFSRoot() {
+		return cacheRoot;
+	}
+
+	public static void setVFSRoot(FileObject cacheRoot) {
+		AssetCacheLocator.cacheRoot = cacheRoot;
+	}
 }

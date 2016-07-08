@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,15 +29,17 @@
  */
 package icemoon.iceloader.locators;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.VFS;
+
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoadException;
 import com.jme3.asset.AssetManager;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.FileSystemException;
-import org.apache.commons.vfs2.VFS;
+
 import icemoon.iceloader.DecryptedAssetInfo;
 import icemoon.iceloader.EncryptionContext;
 
@@ -55,7 +57,8 @@ public class EncryptedFileLocator extends FileLocator {
         }
     }
 
-    @Override
+    @SuppressWarnings("rawtypes")
+	@Override
     public AssetInfo locate(AssetManager manager, AssetKey key) {
         final AssetInfo info = super.locate(manager, key);
         if (info != null) {

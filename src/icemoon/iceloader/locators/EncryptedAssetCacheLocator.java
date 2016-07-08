@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,40 +29,40 @@
  */
 package icemoon.iceloader.locators;
 
+import javax.crypto.spec.SecretKeySpec;
+
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
-import java.util.logging.Logger;
-import javax.crypto.spec.SecretKeySpec;
+
 import icemoon.iceloader.DecryptedAssetInfo;
 import icemoon.iceloader.EncryptionContext;
 
 /**
- * This locator extends AssetCacheLocation and will find encrypted stuff in your local
- * cache, that is is populated by other locators that may download assets. If an asset is
- * found here, it will be returned to JME (eventually, after some an optional freshness
- * check), decrypted.
+ * This locator extends AssetCacheLocation and will find encrypted stuff in your
+ * local cache, that is is populated by other locators that may download assets.
+ * If an asset is found here, it will be returned to JME (eventually, after some
+ * an optional freshness check), decrypted.
  */
 public class EncryptedAssetCacheLocator extends AssetCacheLocator {
 
-    private static final Logger LOG = Logger.getLogger(EncryptedAssetCacheLocator.class.getName());
-    private final SecretKeySpec secret;
+	private final SecretKeySpec secret;
 
-    public EncryptedAssetCacheLocator() {
-        try {
-            secret = EncryptionContext.get().createKey();
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to initialize asset manager.", ex);
-        }
-    }
+	public EncryptedAssetCacheLocator() {
+		try {
+			secret = EncryptionContext.get().createKey();
+		} catch (Exception ex) {
+			throw new RuntimeException("Failed to initialize asset manager.", ex);
+		}
+	}
 
-    @Override
-    public AssetInfo locate(AssetManager manager, AssetKey key) {
-        final AssetInfo info = super.locate(manager, key);
-        if (info != null && !(info instanceof DecryptedAssetInfo)) {
-            return new DecryptedAssetInfo(manager, key, info, secret);
+	@Override
+	public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {
+		final AssetInfo info = super.locate(manager, key);
+		if (info != null && !(info instanceof DecryptedAssetInfo)) {
+			return new DecryptedAssetInfo(manager, key, info, secret);
 
-        }
-        return info;
-    }
+		}
+		return info;
+	}
 }

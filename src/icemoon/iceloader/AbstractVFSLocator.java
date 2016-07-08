@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -53,6 +53,7 @@ public abstract class AbstractVFSLocator implements AssetLocator {
     static {
         LOG.setLevel(Level.FINE);
     }
+    
     private FileObject storeRoot;
     private String rootPath = "/";
     private static boolean alreadyLoaded;
@@ -108,7 +109,7 @@ public abstract class AbstractVFSLocator implements AssetLocator {
 
         private FileObject file;
 
-        public AssetInfoFileObject(AssetManager manager, AssetKey key, FileObject file) {
+        public AssetInfoFileObject(AssetManager manager, AssetKey<?> key, FileObject file) {
             super(manager, key);
             this.file = file;
         }
@@ -143,7 +144,7 @@ public abstract class AbstractVFSLocator implements AssetLocator {
         }
     }
 
-    public AssetInfo locate(AssetManager manager, AssetKey key) {
+    public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {
         FileObject actualStoreRoot = getStoreRoot();
         StringBuilder name = new StringBuilder(rootPath);
         final String keyName = key.getName();

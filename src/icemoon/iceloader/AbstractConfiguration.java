@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,15 +29,16 @@
  */
 package icemoon.iceloader;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoadException;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.AssetNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public abstract class AbstractConfiguration<B> extends BaseConfiguration<B> {
 
@@ -96,13 +97,14 @@ public abstract class AbstractConfiguration<B> extends BaseConfiguration<B> {
 			if (in == null) {
 				throw new AssetNotFoundException("Could not find configuration resource " + assetPath);
 			}
+			
 			try {
 				load(in, backingObject);
 			} finally {
 				in.close();
 			}
 		} catch (IOException ioe) {
-			throw new AssetLoadException("Failed to load configuration resource.", ioe);
+			throw new AssetLoadException(String.format("Failed to load configuration resource %s.", assetPath), ioe);
 		}
 	}
 }

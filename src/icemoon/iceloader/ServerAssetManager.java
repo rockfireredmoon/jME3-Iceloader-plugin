@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -33,14 +33,16 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
-import javax.crypto.spec.SecretKeySpec;
 
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLocator;
@@ -60,6 +62,21 @@ public class ServerAssetManager extends DesktopAssetManager {
 	 * {@link ServerLocator} and it's extensions.
 	 */
 	public interface DownloadingListener {
+		/**
+		 * An asset was requested.
+		 * 
+		 * @param key
+		 *            asset key
+		 */
+		void assetRequested(AssetKey<?> key);
+
+		/**
+		 * An asset was suppliied.
+		 * 
+		 * @param key
+		 *            asset key
+		 */
+		void assetSupplied(AssetKey<?> key);
 
 		/**
 		 * A download has started.
@@ -69,7 +86,7 @@ public class ServerAssetManager extends DesktopAssetManager {
 		 * @param size
 		 *            size of download
 		 */
-		void downloadStarting(AssetKey key, long size);
+		void downloadStarting(AssetKey<?> key, long size);
 
 		/**
 		 * A download has progressed.
@@ -79,7 +96,7 @@ public class ServerAssetManager extends DesktopAssetManager {
 		 * @param progress
 		 *            the number of bytes of the asset now read
 		 */
-		void downloadProgress(AssetKey key, long progress);
+		void downloadProgress(AssetKey<?> key, long progress);
 
 		/**
 		 * A download has completed.
@@ -87,28 +104,69 @@ public class ServerAssetManager extends DesktopAssetManager {
 		 * @param key
 		 *            asset key
 		 */
-		void downloadComplete(AssetKey key);
+		void downloadComplete(AssetKey<?> key);
 	}
 
 	private static final Logger LOG = Logger.getLogger(ServerAssetManager.class.getName());
-	private SecretKeySpec secret;
 	private List<AssetIndex> indexes = new ArrayList<AssetIndex>();
-	private Map<String, Class<? extends AssetLocator>> locators;
+	private Map<String, List<Class<? extends AssetLocator>>> locators;
 	private List<DownloadingListener> downloadingListeners = new ArrayList<DownloadingListener>();
 	private Map<String, Set<String>> assetPatternsCache = new LinkedHashMap<String, Set<String>>();
+	private List<List<AssetKey<?>>> waitings = new LinkedList<List<AssetKey<?>>>();
+	private Map<AssetKey<?>, ReentrantLock> keyLocks = new HashMap<AssetKey<?>, ReentrantLock>();
 
 	public ServerAssetManager() {
-		init();
-	}
-
-	public ServerAssetManager(boolean loadDefaults) {
-		super(loadDefaults);
-		init();
+		super();
 	}
 
 	public ServerAssetManager(URL configFile) {
 		super(configFile);
-		init();
+	}
+
+	public void lockAsset(AssetKey<?> key) {
+		ReentrantLock s;
+		synchronized (keyLocks) {
+			s = keyLocks.get(key);
+			if (s == null) {
+				s = new ReentrantLock(true);
+				keyLocks.put(key, s);
+			}
+		}
+		if (LOG.isLoggable(Level.INFO))
+			LOG.info(String.format("Acquiring lock on %s", key));
+		s.lock();
+		if (LOG.isLoggable(Level.INFO))
+			LOG.info(String.format("Acquired lock on %s", key));
+	}
+
+	public void unlockAsset(AssetKey<?> key) {
+		ReentrantLock s;
+		synchronized (keyLocks) {
+			s = keyLocks.get(key);
+			if (s == null) {
+				throw new IllegalArgumentException("Not locked.");
+			}
+		}
+
+		if (LOG.isLoggable(Level.INFO))
+			LOG.info(String.format("Releasing lock on %s", key));
+		s.unlock();
+		;
+	}
+
+	/**
+	 * Add a list of assists that we expect to load. This is purely for the
+	 * benefit of loading screens. An operation indicates up front the list of
+	 * assets that it will be attempt to load. These are stored until the files
+	 * are either actually downloaded, or supplied from the cache.
+	 * 
+	 * @param assets
+	 *            list of assets we expect to load
+	 */
+	public void require(List<AssetKey<?>> assets) {
+		waitings.add(assets);
+		for (AssetKey<?> r : assets)
+			fireAssetRequested(r);
 	}
 
 	/**
@@ -141,13 +199,36 @@ public class ServerAssetManager extends DesktopAssetManager {
 	 * Re-register (and so re-create) all of the locators.
 	 */
 	public void reregisterLocators() {
-		Map<String, Class<? extends AssetLocator>> lo = new LinkedHashMap<String, Class<? extends AssetLocator>>(
-				locators);
-		for (Map.Entry<String, Class<? extends AssetLocator>> l : lo.entrySet()) {
-			unregisterLocator(l.getKey(), l.getValue());
+		if (locators != null) {
+			Map<String, List<Class<? extends AssetLocator>>> lo;
+			synchronized (locators) {
+				lo = new LinkedHashMap<String, List<Class<? extends AssetLocator>>>();
+				for (Map.Entry<String, List<Class<? extends AssetLocator>>> l : locators.entrySet()) {
+					lo.put(l.getKey(), new ArrayList<Class<? extends AssetLocator>>(l.getValue()));
+				}
+			}
+			for (Map.Entry<String, List<Class<? extends AssetLocator>>> l : lo.entrySet()) {
+				for (Class<? extends AssetLocator> c : l.getValue()) {
+					unregisterLocator(l.getKey(), c);
+				}
+			}
+			for (Map.Entry<String, List<Class<? extends AssetLocator>>> l : lo.entrySet()) {
+				for (Class<? extends AssetLocator> c : l.getValue()) {
+					registerLocator(l.getKey(), c);
+				}
+			}
 		}
-		for (Map.Entry<String, Class<? extends AssetLocator>> l : lo.entrySet()) {
-			registerLocator(l.getKey(), l.getValue());
+	}
+
+	@Override
+	public void unregisterLocator(String rootPath, Class<? extends AssetLocator> clazz) {
+		super.unregisterLocator(rootPath, clazz);
+		if (IndexedAssetLocator.class.isAssignableFrom(clazz)) {
+			if (locators != null) {
+				List<Class<? extends AssetLocator>> list = locators.get(rootPath);
+				if (list != null)
+					list.remove(clazz);
+			}
 		}
 	}
 
@@ -158,11 +239,17 @@ public class ServerAssetManager extends DesktopAssetManager {
 		// Capture the loaders so we can get asset indexes from those that
 		// support it
 		if (IndexedAssetLocator.class.isAssignableFrom(locatorClass)) {
+			@SuppressWarnings("unchecked")
 			final Class<? extends IndexedAssetLocator> clazz = (Class<? extends IndexedAssetLocator>) locatorClass;
 			if (locators == null) {
-				locators = new HashMap<String, Class<? extends AssetLocator>>();
+				locators = new HashMap<String, List<Class<? extends AssetLocator>>>();
 			}
-			locators.put(rootPath, clazz);
+			List<Class<? extends AssetLocator>> list = locators.get(rootPath);
+			if (list == null) {
+				list = new ArrayList<Class<? extends AssetLocator>>();
+				locators.put(rootPath, list);
+			}
+			list.add(clazz);
 		}
 	}
 
@@ -173,21 +260,28 @@ public class ServerAssetManager extends DesktopAssetManager {
 	public void index() {
 		int indexers = 0;
 		if (locators != null) {
-			for (Map.Entry<String, Class<? extends AssetLocator>> clazz : locators.entrySet()) {
-				if (IndexedAssetLocator.class.isAssignableFrom(clazz.getValue())) {
-					indexers++;
-					try {
-						IndexedAssetLocator loc = (IndexedAssetLocator) clazz.getValue().newInstance();
-						AssetIndex index = loc.getIndex(this);
-						if (index == null) {
-							LOG.info(String.format("No asset index for %s", clazz));
-						} else {
-							indexes.add(index);
-							LOG.info(String.format("Asset index for %s contains %d entries", clazz,
-									index.getBackingObject().size()));
+			synchronized (locators) {
+				for (Map.Entry<String, List<Class<? extends AssetLocator>>> clazz : locators.entrySet()) {
+					List<Class<? extends AssetLocator>> list = clazz.getValue();
+					synchronized (list) {
+						for (Class<? extends AssetLocator> c : list) {
+							if (IndexedAssetLocator.class.isAssignableFrom(c)) {
+								indexers++;
+								try {
+									IndexedAssetLocator loc = (IndexedAssetLocator) c.newInstance();
+									AssetIndex index = loc.getIndex(this);
+									if (index == null) {
+										LOG.info(String.format("No asset index for %s", c));
+									} else {
+										indexes.add(index);
+										LOG.info(String.format("Asset index for %s contains %d entries", c,
+												index.getBackingObject().size()));
+									}
+								} catch (Exception ex) {
+									throw new RuntimeException(ex);
+								}
+							}
 						}
-					} catch (Exception ex) {
-						throw new RuntimeException(ex);
 					}
 				}
 			}
@@ -306,29 +400,34 @@ public class ServerAssetManager extends DesktopAssetManager {
 		return t;
 	}
 
-	public void fireDownloadStarted(AssetKey key, long length) {
+	public void fireDownloadStarted(AssetKey<?> key, long length) {
 		for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
 			downloadingListeners.get(i).downloadStarting(key, length);
 		}
 	}
 
-	public void fireDownloadProgress(AssetKey key, long progress) {
+	public void fireDownloadProgress(AssetKey<?> key, long progress) {
 		for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
 			downloadingListeners.get(i).downloadProgress(key, progress);
 		}
 	}
 
-	public void fireDownloadComplete(AssetKey key) {
+	public void fireDownloadComplete(AssetKey<?> key) {
 		for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
 			downloadingListeners.get(i).downloadComplete(key);
 		}
 	}
 
-	private void init() {
-		try {
-			secret = EncryptionContext.get().createKey();
-		} catch (Exception ex) {
-			throw new RuntimeException("Failed to initialize asset manager.", ex);
+	public void fireAssetRequested(AssetKey<?> key) {
+		for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
+			downloadingListeners.get(i).assetRequested(key);
 		}
 	}
+
+	public void fireAssetSupplied(AssetKey<?> key) {
+		for (int i = downloadingListeners.size() - 1; i >= 0; i--) {
+			downloadingListeners.get(i).assetSupplied(key);
+		}
+	}
+
 }

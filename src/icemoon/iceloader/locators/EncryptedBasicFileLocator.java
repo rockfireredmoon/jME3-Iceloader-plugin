@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -77,7 +77,7 @@ public class EncryptedBasicFileLocator extends com.jme3.asset.plugins.FileLocato
 
         private File file;
 
-        public AssetInfoFile(AssetManager manager, AssetKey key, File file) {
+        public AssetInfoFile(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key, File file) {
             super(manager, key);
             this.file = file;
         }
@@ -130,7 +130,7 @@ public class EncryptedBasicFileLocator extends com.jme3.asset.plugins.FileLocato
     }
 
     @Override
-    public AssetInfo locate(AssetManager manager, AssetKey key) {
+    public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {
         String name = key.getName();
         File file = new File(cacheRoot, name);
         if (file.exists() && file.isFile()) {

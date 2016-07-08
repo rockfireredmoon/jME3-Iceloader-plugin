@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,33 +29,27 @@
  */
 package icemoon.iceloader.locators;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.text.DateFormat;
 import java.util.Date;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.jar.JarInputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.apache.commons.vfs2.FileObject;
 
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetLoadException;
 import com.jme3.asset.AssetManager;
-import com.jme3.asset.AssetNotFoundException;
 
 import icemoon.iceloader.AssetIndex;
 import icemoon.iceloader.CachingAssetInfo;
 import icemoon.iceloader.ExtendedAssetInfo;
 import icemoon.iceloader.IndexItem;
+import icemoon.iceloader.JarAssetInfo;
+import icemoon.iceloader.LoaderUtils;
+import icemoon.iceloader.LockingAssetInfo;
 import icemoon.iceloader.ServerAssetManager;
 
 /**
@@ -68,123 +62,6 @@ import icemoon.iceloader.ServerAssetManager;
  */
 public class ServerLocator extends AbstractServerLocator {
 
-	public class JarAssetInfo extends AssetInfo {
-
-		private String suffix;
-		private AssetInfo delegate;
-
-		public JarAssetInfo(AssetManager manager, AssetKey<?> key, String suffix, AssetInfo delegate) {
-			super(manager, key);
-			this.suffix = suffix;
-			this.delegate = delegate;
-		}
-
-		@Override
-		public InputStream openStream() {
-			if (delegate instanceof CachingAssetInfo) {
-				CachingAssetInfo ca = (CachingAssetInfo) delegate;
-				try {
-					FileObject cacheRoot = ca.getCacheRoot();
-					if (cacheRoot.getURL().getProtocol().equals("file")) {
-						try {
-							File cacheFile = new File(cacheRoot.getURL().toURI() + "/" + key.getName());
-							if (cacheFile.exists()) {
-								final JarFile jf = new JarFile(cacheFile);
-								JarEntry jent = jf.getJarEntry(suffix);
-								final InputStream is = jf.getInputStream(jent);
-								return new InputStream() {
-									@Override
-									public int read() throws IOException {
-										return is.read();
-									}
-
-									@Override
-									public int read(byte[] b) throws IOException {
-										return is.read(b);
-									}
-
-									@Override
-									public int read(byte[] b, int off, int len) throws IOException {
-										return is.read(b, off, len);
-									}
-
-									@Override
-									public void close() throws IOException {
-										try {
-											is.close();
-										} finally {
-											jf.close();
-										}
-									}
-								};
-							}
-						} catch (URISyntaxException e) {
-							throw new AssetNotFoundException(
-									String.format("Could not locate asset %s in cached archive %s.", suffix, key), e);
-						}
-					} else {
-						FileObject cacheFile = cacheRoot.resolveFile(key.getName());
-						if (cacheFile.exists()) {
-							cacheFile = cacheRoot.getFileSystem().getFileSystemManager().resolveFile(
-									"jar:" + cacheRoot.getName().getURI() + "/" + key.getName() + "!" + suffix);
-							return cacheFile.getContent().getInputStream();
-						}
-					}
-				} catch (IOException e) {
-					throw new AssetNotFoundException(
-							String.format("Could not locate asset %s in cached archive %s.", suffix, key), e);
-				}
-			}
-
-			// Will be slow
-			try {
-				final InputStream stream = delegate.openStream();
-				final JarInputStream jin = new JarInputStream(stream);
-				JarEntry jen = null;
-				while ((jen = jin.getNextJarEntry()) != null) {
-					if (jen.getName().equals(suffix)) {
-						return new InputStream() {
-
-							@Override
-							public int read(byte[] b) throws IOException {
-								return jin.read(b);
-							}
-
-							@Override
-							public int read(byte[] b, int off, int len) throws IOException {
-								return jin.read(b, off, len);
-							}
-
-							@Override
-							public void close() throws IOException {
-								super.close();
-
-								// Sink the end of the streamm so the entire
-								// file gets cached
-								byte[] buf = new byte[8192];
-								while (stream.read(buf) != -1)
-									;
-								jin.close();
-							}
-
-							@Override
-							public int read() throws IOException {
-								return jin.read();
-							}
-						};
-					}
-				}
-			} catch (IOException e) {
-				throw new AssetNotFoundException(
-						String.format("Could not extract asset %s from archive stream %s.", suffix, key));
-			}
-			throw new AssetNotFoundException(
-					String.format("Could not find asset %s i archive stream %s.", suffix, key));
-
-		}
-
-	}
-
 	private static final Logger LOG = Logger.getLogger(ServerLocator.class.getName());
 
 	static {
@@ -195,6 +72,7 @@ public class ServerLocator extends AbstractServerLocator {
 		}
 	}
 
+	@SuppressWarnings("rawtypes")
 	public AssetInfo locate(AssetManager manager, AssetKey key) {
 		String name = key.getName();
 		long ifModifiedSince = -1;
@@ -252,6 +130,13 @@ public class ServerLocator extends AbstractServerLocator {
 							if (LOG.isLoggable(Level.FINE)) {
 								LOG.fine("Index item says this is not modified, just use cached version");
 							}
+
+							if (cachedInfo != null && !(cachedInfo instanceof JarAssetInfo) && suffix != null) {
+								cachedInfo = new JarAssetInfo(manager, key, suffix, cachedInfo);
+							}
+							
+							cachedInfo = new LockingAssetInfo(manager, key, cachedInfo);
+							
 							return cachedInfo;
 						} else {
 							if (LOG.isLoggable(Level.FINE)) {
@@ -289,8 +174,9 @@ public class ServerLocator extends AbstractServerLocator {
 				}
 				encName.append(URLEncoder.encode(part, "UTF-8"));
 			}
-			URL url = new URL(root, encName.toString());
-			AssetInfo ai = create(manager, key, url, ifModifiedSince);
+			URL url = new URL(LoaderUtils.ensureEndsWithSlash(root), encName.toString());
+			
+			AssetInfo ai = create(manager, key, url, ifModifiedSince, indexItem== null ? -1 : indexItem.getUnprocessedSize());
 
 			// If the asset is found, it is not already a cached asset, as the
 			// cacher is in use, cache it
@@ -301,6 +187,8 @@ public class ServerLocator extends AbstractServerLocator {
 			if (ai != null && !(ai instanceof JarAssetInfo) && suffix != null) {
 				ai = new JarAssetInfo(manager, key, suffix, ai);
 			}
+			
+			ai = new LockingAssetInfo(manager, key, ai);
 
 			return ai;
 		} catch (FileNotFoundException e) {

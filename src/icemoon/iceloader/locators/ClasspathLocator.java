@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014 Emerald Icemoon All rights reserved.
+ * Copyright (c) 2013-2016 Emerald Icemoon All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -29,10 +29,6 @@
  */
 package icemoon.iceloader.locators;
 
-import icemoon.iceloader.AssetIndex;
-import icemoon.iceloader.ExtendedAssetInfo;
-import icemoon.iceloader.IndexedAssetLocator;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.Enumeration;
@@ -43,6 +39,9 @@ import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 
+import icemoon.iceloader.AssetIndex;
+import icemoon.iceloader.IndexedAssetLocator;
+
 /**
  * Locator that locates assets on the classpath, much like {@link ClasspathLocator}, but
  * also provides an index of all classpath resources too.
@@ -52,19 +51,12 @@ public class ClasspathLocator extends com.jme3.asset.plugins.ClasspathLocator im
     private boolean loadedAssetIndex;
     private static final Logger LOG = Logger.getLogger(ClasspathLocator.class.getName());
     private AssetIndex assetIndex;
-    private String rootPath = "";
 
     public ClasspathLocator() {
     }
 
     @Override
-    public void setRootPath(String rootPath) {
-        this.rootPath = rootPath;
-        super.setRootPath(rootPath);
-    }
-
-    @Override
-    public AssetInfo locate(AssetManager manager, AssetKey key) {
+    public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {
         return super.locate(manager, key);
     }
 
