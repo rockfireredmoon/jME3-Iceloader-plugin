@@ -87,6 +87,7 @@ public class DecryptedAssetInfo extends ExtendedAssetInfo {
 
             Cipher c = Cipher.getInstance(EncryptionContext.get().getCipher());
             c.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(iv));
+            final long now = System.currentTimeMillis();
             return new CipherInputStream(in, c) {
                 @Override
                 public int available() throws IOException {
@@ -94,6 +95,14 @@ public class DecryptedAssetInfo extends ExtendedAssetInfo {
                     // CipherInputStream always returns zero, which screws this up
                     return in.available();
                 }
+
+				@Override
+				public void close() throws IOException {
+					super.close();
+		            if (LOG.isLoggable(Level.FINE)) {
+		                LOG.fine(String.format("Decryption of %s took %dms", key.getName(), System.currentTimeMillis() - now));
+		            }
+				}
             };
         } catch (Exception e) {
             throw new AssetLoadException(String.format("Failed to load asset %s.", key.getName()), e);

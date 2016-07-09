@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.vfs2.FileObject;
@@ -56,7 +57,7 @@ public class JarAssetInfo extends AssetInfo {
 
 	public JarAssetInfo(AssetManager manager, AssetKey<?> key, String suffix, AssetInfo delegate) {
 		super(manager, key);
-		if(delegate == null)
+		if (delegate == null)
 			throw new IllegalArgumentException("Delegate must be supplied.");
 		this.suffix = suffix;
 		this.delegate = delegate;
@@ -64,6 +65,8 @@ public class JarAssetInfo extends AssetInfo {
 
 	@Override
 	public InputStream openStream() {
+		if(LOG.isLoggable(Level.FINE))
+			LOG.fine(String.format("Opening Jar stream for %s", key.getName()));
 		if (delegate instanceof CachingAssetInfo) {
 			CachingAssetInfo ca = (CachingAssetInfo) delegate;
 			try {
@@ -165,13 +168,24 @@ public class JarAssetInfo extends AssetInfo {
 	}
 
 	private InputStream extractFromJarFile(final File cacheFile, final boolean deleteOnClose) throws IOException {
+		if (LOG.isLoggable(Level.FINE))
+			LOG.fine(String.format("Extracting %s from %s (which is %d bytes big)", key.getName(), cacheFile,
+					cacheFile.length()));
+		long now = System.currentTimeMillis();
 		final JarFile jf = new JarFile(cacheFile);
 		JarEntry jent = jf.getJarEntry(suffix);
 		if (jent == null) {
 			throw new AssetNotFoundException(
 					String.format("Could not find asset %s i archive stream %s.", suffix, key));
 		}
+		if (LOG.isLoggable(Level.FINE))
+			LOG.fine(String.format("%s took %dms to locate in the jar", key.getName(),
+					System.currentTimeMillis() - now));
+		now = System.currentTimeMillis();
 		final InputStream is = jf.getInputStream(jent);
+		if (LOG.isLoggable(Level.FINE))
+			LOG.fine(String.format("%s took %dms to open the input stream", key.getName(),
+					System.currentTimeMillis() - now));
 		return new InputStream() {
 			@Override
 			public int read() throws IOException {
@@ -207,10 +221,12 @@ public class JarAssetInfo extends AssetInfo {
 			final InputStream stream = delegate.openStream();
 			final JarInputStream jin = new JarInputStream(stream);
 			JarEntry jen = null;
-			LOG.info(String.format("Scanning stream of %s looking for %s (%s)", delegate.getKey(), key, suffix));
+			if (LOG.isLoggable(Level.FINE))
+				LOG.fine(String.format("Scanning stream of %s looking for %s (%s)", delegate.getKey(), key, suffix));
 			final Set<Boolean> holder = new HashSet<Boolean>();
 			while (holder.isEmpty() && (jen = jin.getNextJarEntry()) != null) {
-				LOG.info(String.format(" Found %s", jen.getName()));
+				if (LOG.isLoggable(Level.FINE))
+					LOG.fine(String.format(" Found %s", jen.getName()));
 				if (jen.getName().equals(suffix)) {
 					return new InputStream() {
 
@@ -230,7 +246,8 @@ public class JarAssetInfo extends AssetInfo {
 
 							// Sink the end of the streamm so the entire
 							// file gets cached
-							LOG.info(String.format(" Sinking to end of stream"));
+							if (LOG.isLoggable(Level.FINE))
+								LOG.fine(String.format(" Sinking to end of stream"));
 
 							while (jin.getNextJarEntry() != null)
 								;
