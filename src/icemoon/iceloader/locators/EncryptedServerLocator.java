@@ -37,6 +37,7 @@ import java.util.logging.Logger;
 import icemoon.iceloader.AssetIndex;
 import icemoon.iceloader.DecryptedAssetInfo;
 import icemoon.iceloader.EncryptionContext;
+import icemoon.iceloader.LoaderAssetInfo;
 
 /**
  * This extension of {@link ServerLocator} expects the assets to be encrypted. It will decrypt
@@ -47,7 +48,8 @@ public class EncryptedServerLocator extends ServerLocator {
     @Override
     public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {
         final AssetInfo info = super.locate(manager, key);
-        if (info != null && !(info instanceof DecryptedAssetInfo) && !key.getName().equals(AssetIndex.DEFAULT_RESOURCE_NAME)) {
+
+		if (info != null && !key.getName().equals(AssetIndex.DEFAULT_RESOURCE_NAME) && (!(info instanceof LoaderAssetInfo) || ((LoaderAssetInfo)info).isDecryptedStream())) {
             try {
                 return new DecryptedAssetInfo(manager, key, info, EncryptionContext.get().createKey());
             } catch (Exception ex) {

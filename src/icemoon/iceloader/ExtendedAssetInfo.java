@@ -37,7 +37,7 @@ import com.jme3.asset.AssetManager;
  * Extension of {@link AssetInfo} to carry the asset size and last 
  * modified time as well (when known).
  */
-public abstract class ExtendedAssetInfo extends AssetInfo {
+public abstract class ExtendedAssetInfo extends LoaderAssetInfo {
 
     public ExtendedAssetInfo(AssetManager manager, AssetKey key) {
         super(manager, key);

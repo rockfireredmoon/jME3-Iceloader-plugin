@@ -37,6 +37,7 @@ import com.jme3.asset.AssetManager;
 
 import icemoon.iceloader.DecryptedAssetInfo;
 import icemoon.iceloader.EncryptionContext;
+import icemoon.iceloader.LoaderAssetInfo;
 
 /**
  * Extension of {@link ClasspathLocator} than expects assets it finds to be
@@ -56,7 +57,7 @@ public class EncryptedClasspathLocator extends ClasspathLocator {
 	@Override
 	public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {
 		final AssetInfo info = super.locate(manager, key);
-		if (info != null && !(info instanceof DecryptedAssetInfo)) {
+		if (info != null && (!(info instanceof LoaderAssetInfo) || ((LoaderAssetInfo)info).isDecryptedStream())) {
 			return new DecryptedAssetInfo(manager, key, info, secret);
 
 		}

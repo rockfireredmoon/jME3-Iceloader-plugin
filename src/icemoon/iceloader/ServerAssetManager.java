@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -132,11 +131,11 @@ public class ServerAssetManager extends DesktopAssetManager {
 				keyLocks.put(key, s);
 			}
 		}
-		if (LOG.isLoggable(Level.INFO))
-			LOG.info(String.format("Acquiring lock on %s", key));
+		if (LOG.isLoggable(Level.FINE))
+			LOG.fine(String.format("Acquiring lock on %s", key));
 		s.lock();
-		if (LOG.isLoggable(Level.INFO))
-			LOG.info(String.format("Acquired lock on %s", key));
+		if (LOG.isLoggable(Level.FINE))
+			LOG.fine(String.format("Acquired lock on %s", key));
 	}
 
 	public void unlockAsset(AssetKey<?> key) {
@@ -148,8 +147,8 @@ public class ServerAssetManager extends DesktopAssetManager {
 			}
 		}
 
-		if (LOG.isLoggable(Level.INFO))
-			LOG.info(String.format("Releasing lock on %s", key));
+		if (LOG.isLoggable(Level.FINE))
+			LOG.fine(String.format("Releasing lock on %s", key));
 		s.unlock();
 		;
 	}

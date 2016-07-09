@@ -97,7 +97,6 @@ public abstract class AbstractConfiguration<B> extends BaseConfiguration<B> {
 			if (in == null) {
 				throw new AssetNotFoundException("Could not find configuration resource " + assetPath);
 			}
-			
 			try {
 				load(in, backingObject);
 			} finally {

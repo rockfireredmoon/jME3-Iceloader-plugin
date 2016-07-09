@@ -132,4 +132,9 @@ public class UrlAssetInfo extends ExtendedAssetInfo {
 	public long getLastModified() {
 		return lastModified;
 	}
+
+	@Override
+	public boolean isDecryptedStream() {
+		return false;
+	}
 }

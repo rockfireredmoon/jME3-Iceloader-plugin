@@ -69,7 +69,6 @@ public class DecryptedAssetInfo extends ExtendedAssetInfo {
             PushbackInputStream pin = new PushbackInputStream(in, header.length);
             DataInputStream din = new DataInputStream(pin);
             din.readFully(b);
-            long actualSize = din.readLong();
             if (!Arrays.equals(b, header)) {
                 if (LOG.isLoggable(Level.FINE)) {
                     LOG.fine("Asset doesn't appear to be encrypted, returning as is");
@@ -77,6 +76,7 @@ public class DecryptedAssetInfo extends ExtendedAssetInfo {
                 pin.unread(b);
                 return pin;
             }
+            long actualSize = din.readLong();
             int ivl = din.read();
             byte[] iv = new byte[ivl];
             din.readFully(iv);
@@ -118,4 +118,9 @@ public class DecryptedAssetInfo extends ExtendedAssetInfo {
     public long getLastModified() {
         return info instanceof ExtendedAssetInfo ? ((ExtendedAssetInfo) info).getLastModified() : -1;
     }
+
+	@Override
+	public boolean isDecryptedStream() {
+		return true;
+	}
 }

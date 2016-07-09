@@ -49,7 +49,7 @@ import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.AssetNotFoundException;
 
-public class JarAssetInfo extends AssetInfo {
+public class JarAssetInfo extends LoaderAssetInfo {
 	private static final Logger LOG = Logger.getLogger(JarAssetInfo.class.getName());
 
 	private String suffix;
@@ -270,6 +270,11 @@ public class JarAssetInfo extends AssetInfo {
 					String.format("Could not extract asset %s from archive stream %s.", suffix, key), e);
 		}
 		throw new AssetNotFoundException(String.format("Could not find asset %s i archive stream %s.", suffix, key));
+	}
+
+	@Override
+	public boolean isDecryptedStream() {
+		return false;
 	}
 
 }

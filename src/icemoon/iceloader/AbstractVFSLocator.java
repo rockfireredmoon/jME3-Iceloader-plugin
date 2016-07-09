@@ -142,6 +142,11 @@ public abstract class AbstractVFSLocator implements AssetLocator {
                 return -1;
             }
         }
+
+		@Override
+		public boolean isDecryptedStream() {
+			return false;
+		}
     }
 
     public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {

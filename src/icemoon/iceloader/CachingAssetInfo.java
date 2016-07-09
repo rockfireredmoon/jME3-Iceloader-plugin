@@ -43,7 +43,7 @@ import java.util.logging.Logger;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 
-public class CachingAssetInfo extends AssetInfo {
+public class CachingAssetInfo extends LoaderAssetInfo {
 
     private static final Logger LOG = Logger.getLogger(CachingAssetInfo.class.getName());
     private final AssetInfo delegate;
@@ -177,4 +177,9 @@ public class CachingAssetInfo extends AssetInfo {
             }
         };
     }
+
+	@Override
+	public boolean isDecryptedStream() {
+		return delegate instanceof LoaderAssetInfo ? ((LoaderAssetInfo)delegate).isDecryptedStream() : false;
+	}
 }
