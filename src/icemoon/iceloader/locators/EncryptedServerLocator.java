@@ -49,7 +49,7 @@ public class EncryptedServerLocator extends ServerLocator {
     public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {
         final AssetInfo info = super.locate(manager, key);
 
-		if (info != null && !key.getName().equals(AssetIndex.DEFAULT_RESOURCE_NAME) && (!(info instanceof LoaderAssetInfo) || ((LoaderAssetInfo)info).isDecryptedStream())) {
+		if (info != null && !key.getName().equals(AssetIndex.DEFAULT_RESOURCE_NAME) && (!(info instanceof LoaderAssetInfo) || !((LoaderAssetInfo)info).isDecryptedStream())) {
             try {
                 return new DecryptedAssetInfo(manager, key, info, EncryptionContext.get().createKey());
             } catch (Exception ex) {

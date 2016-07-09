@@ -57,7 +57,7 @@ public class EncryptedClasspathLocator extends ClasspathLocator {
 	@Override
 	public AssetInfo locate(AssetManager manager, @SuppressWarnings("rawtypes") AssetKey key) {
 		final AssetInfo info = super.locate(manager, key);
-		if (info != null && (!(info instanceof LoaderAssetInfo) || ((LoaderAssetInfo)info).isDecryptedStream())) {
+		if (info != null && (!(info instanceof LoaderAssetInfo) || !((LoaderAssetInfo)info).isDecryptedStream())) {
 			return new DecryptedAssetInfo(manager, key, info, secret);
 
 		}
