@@ -26,7 +26,7 @@ public class LoaderUtils {
 
 	public static  InputStream dumpStream(InputStream in) throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		LoaderUtils.copy(in, baos);
+		copy(in, baos);
 		System.err.println("--BEGIN STREAM DUMP--");
 		System.err.println(new String(baos.toByteArray()));
 		System.err.println("--END STREAM DUMP--");

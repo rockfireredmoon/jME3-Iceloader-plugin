@@ -198,15 +198,15 @@ public abstract class AbstractServerLocator implements IndexedAssetLocator {
 	}
 
 	public InputStream getStream(final ServerAssetManager assetManager, final AssetKey<?> key, URLConnection conn,
-			long fileLength) throws IOException {
+			final long fileLength) throws IOException {
 		if (fireEvents) {
-			assetManager.fireDownloadStarted(key, fileLength);
 			InputStream in = conn.getInputStream();
 			return new FilterInputStream(in) {
 				private long total;
 
 				@Override
 				public int read() throws IOException {
+					checkStart();
 					int r = super.read();
 					if (r != -1) {
 						total++;
@@ -214,9 +214,15 @@ public abstract class AbstractServerLocator implements IndexedAssetLocator {
 					}
 					return r;
 				}
+				
+				void checkStart() {
+					if(total == 0) 
+						assetManager.fireDownloadStarted(key, fileLength);
+				}
 
 				@Override
 				public int read(byte[] b) throws IOException {
+					checkStart();
 					int r = super.read(b);
 					if (r != -1) {
 						total += r;
@@ -227,6 +233,7 @@ public abstract class AbstractServerLocator implements IndexedAssetLocator {
 
 				@Override
 				public int read(byte[] b, int off, int len) throws IOException {
+					checkStart();
 					int r = super.read(b, off, len);
 					if (r != -1) {
 						total += r;
@@ -238,7 +245,8 @@ public abstract class AbstractServerLocator implements IndexedAssetLocator {
 				@Override
 				public void close() throws IOException {
 					super.close();
-					assetManager.fireDownloadComplete(key);
+					if(total > 0)
+						assetManager.fireDownloadComplete(key);
 				}
 			};
 		} else {
