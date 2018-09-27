@@ -11,7 +11,7 @@
 		<relativePath>../jME3-Iceloader</relativePath>
 	</parent>
 	<properties>
-		<jmonkey.version>3.0.10</jmonkey.version>
+		<jmonkey.version>3.1.0-stable</jmonkey.version>
 	</properties>
 	<build>
 		<sourceDirectory>src</sourceDirectory>
